@@ -24,3 +24,10 @@ end
 
 import CompatHelperLocal as CHL
 CHL.@check()
+import Aqua
+@testset "Aqua" begin
+    Aqua.test_ambiguities(IM, recursive=false)
+    Aqua.test_unbound_args(IM)
+    Aqua.test_undefined_exports(IM)
+    Aqua.test_stale_deps(IM)
+end
