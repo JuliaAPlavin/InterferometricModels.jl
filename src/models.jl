@@ -24,6 +24,7 @@ end
 abstract type ModelComponent end
 
 position_angle((c_from, c_to)::Pair{<:ModelComponent, <:ModelComponent}) = atan( (coords(c_to) - coords(c_from))... )
+distance(c_from::ModelComponent, c_to::ModelComponent) = hypot( (coords(c_from) - coords(c_to))... )
 
 flux(c::ModelComponent) = c.flux
 coords(c::ModelComponent) = c.coords
