@@ -1,0 +1,94 @@
+const UVType = StaticVector{2}
+const XYType = StaticVector{2}
+
+
+abstract type ModelComponent end
+
+flux(c::ModelComponent) = c.flux
+coords(c::ModelComponent) = c.coords
+Tb_peak(c::ModelComponent, ν) = intensity_peak(c) * u"c"^2 / (2 * u"k" * ν^2) |> u"K"
+
+
+@with_kw struct PointSource{TF,TC} <: ModelComponent
+    flux::TF
+    coords::SVector{2, TC}
+end
+
+fwhm_max(c::PointSource) = fwhm_average(c)
+fwhm_min(c::PointSource) = fwhm_average(c)
+fwhm_average(c::PointSource{TF,TC}) where {TF,TC} = zero(TC)
+effective_area(c::PointSource) = fwhm_average(c)^2  # also zero, but need proper units
+intensity_peak(c::PointSource) = flux(c) / effective_area(c)
+
+visibility_amplitude(c::PointSource, uv::UVType) = c.flux
+visibility_phase(c::PointSource, uv::UVType) = 2π * dot(uv, c.coords)
+function visibility(c::PointSource, uv::UVType)
+    c.flux * exp(-π2im * dot(uv, c.coords))
+end
+visibility_envelope(c::PointSource, uvdist::Real) = c.flux ± zero(typeof(c.flux))
+
+
+@with_kw struct CircularGaussian{TF,TC} <: ModelComponent
+    flux::TF
+    σ::TC
+    coords::SVector{2, TC}
+end
+
+fwhm_max(c::CircularGaussian) = fwhm_average(c)
+fwhm_min(c::CircularGaussian) = fwhm_average(c)
+fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
+effective_area(c::CircularGaussian) = 2π * c.σ^2
+
+intensity_peak(c::CircularGaussian) = flux(c) / effective_area(c)
+intensity(c::CircularGaussian, xy::XYType) = intensity_peak(c) * exp(-dot(xy - c.coords, xy - c.coords)/(2*c.σ^2))
+
+visibility_amplitude(c::CircularGaussian, uv::UVType) = c.flux * exp(-2π^2 * c.σ^2 * dot(uv, uv))
+visibility_phase(c::CircularGaussian, uv::UVType) = 2π * dot(uv, c.coords)
+function visibility(c::CircularGaussian, uv::UVType)
+    c.flux * exp(-2π^2 * c.σ^2 * dot(uv, uv) - 2π*im * dot(uv, c.coords))
+    # with fwhm instead of σ:
+    # c.flux * exp(-pi^2 / log(16) * c.fwhm^2 * dot(uv, uv) - 2π*im * dot(uv, c.coords))
+end
+visibility_envelope(c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± 0
+
+
+@with_kw struct EllipticGaussian{TF,TC,T} <: ModelComponent
+    flux::TF
+    σ_major::TC
+    ratio_minor_major::T
+    pa_major::T
+    coords::SVector{2, TC}
+end
+
+fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
+fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
+fwhm_average(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * √(c.ratio_minor_major))  # geometric average
+effective_area(c::EllipticGaussian) = 2π * c.σ_major^2 * c.ratio_minor_major
+intensity_peak(c::EllipticGaussian) = flux(c) / effective_area(c)
+visibility_phase(c::EllipticGaussian, uv::UVType) = 2π * dot(uv, c.coords)
+visibility_envelope(c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
+
+
+
+@with_kw struct MultiComponentModel{TUP}
+    components::TUP
+end
+
+components(m::MultiComponentModel) = m.components
+visibility(model::MultiComponentModel, uv::UVType) = sum(c -> visibility(c, uv), components(model))
+
+
+function model_from_difmap(components::AbstractVector)
+    comps = map(components) do c
+        coords = c.radec*u"mas"
+        flux = c.flux*u"Jy"
+        if c.major == 0
+            PointSource(; flux, coords)
+        elseif c.ratio == 1
+            CircularGaussian(; flux, σ=fwhm_to_σ(c.major*u"mas"), coords)
+        else
+            EllipticGaussian(; flux, σ_major=fwhm_to_σ(c.major*u"mas"), ratio_minor_major=c.ratio, pa_major=c.phi, coords)
+        end
+    end
+    MultiComponentModel(Tuple(comps))
+end
