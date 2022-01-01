@@ -5,11 +5,6 @@ using StaticArrays
 import InterferometricModels as IM
 import VLBIData as VLBI
 
-# import CompatHelperLocal as CHL
-# @testset begin
-#     CHL.@check()
-# end
-
 @testset begin
     dmod = VLBI.load(VLBI.DifmapModel, "./data/difmap_model.mod")
     mod = IM.model_from_difmap(dmod)
@@ -25,3 +20,7 @@ import VLBIData as VLBI
     @test_broken visibility(mod.components[1], SVector(0, 0))
     @test visibility(mod.components[2], SVector(0, 0)) ≈ -0.00937331 + 0.0im
 end
+
+
+import CompatHelperLocal as CHL
+CHL.@check()
