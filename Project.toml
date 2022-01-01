@@ -6,14 +6,12 @@ version = "0.1.0"
 [deps]
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 
 [compat]
 IntervalSets = "0.5"
-Parameters = "0.12"
 StaticArrays = "1.1"
 Unitful = "1.6"
 UnitfulAstro = "1.0"

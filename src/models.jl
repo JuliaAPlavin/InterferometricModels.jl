@@ -16,7 +16,7 @@ intensity_to_Tb(intensity, ν) = intensity * u"c"^2 / (2 * u"k" * ν^2) |> u"K"
 intensity_to_Tb(intensity::Real, ν) = ustrip(u"K", intensity_to_Tb(intensity*u"Jy/(1e-3*arcsecond)^2", ν))
 
 
-@with_kw struct PointSource{TF,TC} <: ModelComponent
+Base.@kwdef struct PointSource{TF,TC} <: ModelComponent
     flux::TF
     coords::SVector{2, TC}
 end
@@ -35,7 +35,7 @@ end
 visibility_envelope(c::PointSource, uvdist::Real) = c.flux ± zero(typeof(c.flux))
 
 
-@with_kw struct CircularGaussian{TF,TC} <: ModelComponent
+Base.@kwdef struct CircularGaussian{TF,TC} <: ModelComponent
     flux::TF
     σ::TC
     coords::SVector{2, TC}
@@ -59,7 +59,7 @@ end
 visibility_envelope(c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± 0
 
 
-@with_kw struct EllipticGaussian{TF,TC,T} <: ModelComponent
+Base.@kwdef struct EllipticGaussian{TF,TC,T} <: ModelComponent
     flux::TF
     σ_major::TC
     ratio_minor_major::T
@@ -77,7 +77,7 @@ visibility_envelope(c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * 
 position_angle(c::EllipticGaussian) = c.pa_major
 
 
-@with_kw struct MultiComponentModel{TUP}
+Base.@kwdef struct MultiComponentModel{TUP}
     components::TUP
 end
 

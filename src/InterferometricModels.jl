@@ -1,6 +1,5 @@
 module InterferometricModels
 
-using Parameters
 using Unitful, UnitfulAstro
 using IntervalSets
 using StaticArrays
