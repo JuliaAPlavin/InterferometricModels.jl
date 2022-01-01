@@ -6,7 +6,12 @@ abstract type ModelComponent end
 
 flux(c::ModelComponent) = c.flux
 coords(c::ModelComponent) = c.coords
-Tb_peak(c::ModelComponent, ν) = intensity_peak(c) * u"c"^2 / (2 * u"k" * ν^2) |> u"K"
+Tb_peak(c::ModelComponent, ν) = intensity_to_Tb(intensity_peak(c), ν)
+
+# unitful: use units
+intensity_to_Tb(intensity, ν) = intensity * u"c"^2 / (2 * u"k" * ν^2) |> u"K"
+# plain number: assume janskys/mas^2
+intensity_to_Tb(intensity::Real, ν) = ustrip("K", intensity_to_Tb(intensity*u"Jy/(1e-3*arcsecond)^2", ν^2))
 
 
 @with_kw struct PointSource{TF,TC} <: ModelComponent
@@ -80,14 +85,14 @@ visibility(model::MultiComponentModel, uv::UVType) = sum(c -> visibility(c, uv),
 
 function model_from_difmap(components::AbstractVector)
     comps = map(components) do c
-        coords = c.radec*u"mas"
-        flux = c.flux*u"Jy"
+        coords = c.radec
+        flux = c.flux
         if c.major == 0
             PointSource(; flux, coords)
         elseif c.ratio == 1
-            CircularGaussian(; flux, σ=fwhm_to_σ(c.major*u"mas"), coords)
+            CircularGaussian(; flux, σ=fwhm_to_σ(c.major), coords)
         else
-            EllipticGaussian(; flux, σ_major=fwhm_to_σ(c.major*u"mas"), ratio_minor_major=c.ratio, pa_major=c.phi, coords)
+            EllipticGaussian(; flux, σ_major=fwhm_to_σ(c.major), ratio_minor_major=c.ratio, pa_major=c.phi, coords)
         end
     end
     MultiComponentModel(Tuple(comps))

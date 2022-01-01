@@ -2,6 +2,7 @@ using Test
 using InterferometricModels
 using Unitful, UnitfulAstro
 using Utils
+using StaticArrays
 import InterferometricModels as IM
 import VLBIData as VLBI
 
@@ -13,7 +14,10 @@ import VLBIData as VLBI
 @testset begin
     dmod = VLBI.load(VLBI.DifmapModel, "./data/difmap_model.mod")
     mod = IM.model_from_difmap(dmod)
-    @test collect(map(flux, components(mod))) ≈ [0.649486u"Jy", -0.00937331u"Jy", 1.32054e9u"Jy"]
-    @test collect(map(intensity_peak, components(mod))) ≈ [Inf*u"Jy*mas^-2", -0.00022640511888964438u"Jy*mas^-2", 0.011191592828378834u"Jy*mas^-2"]
-    @test collect(map(c -> Tb_peak(c, 15u"GHz"), components(mod))) ≈ [Inf*u"K", -1.3934202495658437e6u"K", 6.887914967841405e7u"K"]
+    @test collect(map(flux, components(mod))) ≈ [0.649486, -0.00937331, 1.32054e9]
+    @test collect(map(intensity_peak, components(mod))) ≈ [Inf, -0.00022640511888964438, 0.011191592828378834]
+    @test collect(map(c -> Tb_peak(c, 15u"GHz"), components(mod))) ≈ [Inf, -1.3934202495658437e6, 6.887914967841405e7]
+    @test_broken visibility(mod, SVector(0, 0))
+    @test_broken visibility(mod.components[1], SVector(0, 0))
+    @test visibility(mod.components[2], SVector(0, 0)) ≈ -0.00937331 + 0.0im
 end

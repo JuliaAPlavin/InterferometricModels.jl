@@ -4,7 +4,7 @@ using Parameters
 using Unitful, UnitfulAstro
 using IntervalSets
 using StaticArrays
-using Utils  # for u"mas"
+using LinearAlgebra: dot
 
 export
     ModelComponent, PointSource, CircularGaussian, EllipticGaussian,
