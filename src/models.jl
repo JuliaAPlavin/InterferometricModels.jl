@@ -4,6 +4,8 @@ const XYType = StaticVector{2}
 
 abstract type ModelComponent end
 
+position_angle((c_from, c_to)::Pair{<:ModelComponent, <:ModelComponent}) = atan( (coords(c_to) - coords(c_from))... )
+
 flux(c::ModelComponent) = c.flux
 coords(c::ModelComponent) = c.coords
 Tb_peak(c::ModelComponent, ν) = intensity_to_Tb(intensity_peak(c), ν)
@@ -72,7 +74,7 @@ effective_area(c::EllipticGaussian) = 2π * c.σ_major^2 * c.ratio_minor_major
 intensity_peak(c::EllipticGaussian) = flux(c) / effective_area(c)
 visibility_phase(c::EllipticGaussian, uv::UVType) = 2π * dot(uv, c.coords)
 visibility_envelope(c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
-
+position_angle(c::EllipticGaussian) = c.pa_major
 
 
 @with_kw struct MultiComponentModel{TUP}
