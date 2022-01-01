@@ -11,7 +11,7 @@ Tb_peak(c::ModelComponent, ν) = intensity_to_Tb(intensity_peak(c), ν)
 # unitful: use units
 intensity_to_Tb(intensity, ν) = intensity * u"c"^2 / (2 * u"k" * ν^2) |> u"K"
 # plain number: assume janskys/mas^2
-intensity_to_Tb(intensity::Real, ν) = ustrip("K", intensity_to_Tb(intensity*u"Jy/(1e-3*arcsecond)^2", ν^2))
+intensity_to_Tb(intensity::Real, ν) = ustrip(u"K", intensity_to_Tb(intensity*u"Jy/(1e-3*arcsecond)^2", ν))
 
 
 @with_kw struct PointSource{TF,TC} <: ModelComponent
