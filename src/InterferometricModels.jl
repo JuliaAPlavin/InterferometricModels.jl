@@ -17,6 +17,7 @@ export
 
 include("utils.jl")
 include("models.jl")
+include("convolve.jl")
 include("from_vec.jl")
 
 end
