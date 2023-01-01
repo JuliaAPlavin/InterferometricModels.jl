@@ -92,6 +92,8 @@ end
 Base.broadcastable(c::MultiComponentModel) = Ref(c)
 components(m::MultiComponentModel) = m.components
 
+Base.:(==)(a::MultiComponentModel, b::MultiComponentModel) = components(a) == components(b)
+
 flux(m::MultiComponentModel) = sum(flux, components(m))
 
 intensity_peak(c::Point) = flux(c) / effective_area(c)

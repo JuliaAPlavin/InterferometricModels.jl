@@ -109,6 +109,13 @@ end
     @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
     @test visibility.(m, xs) ≈ 2 .* visibility.(c1, xs) .+ visibility.(c2, xs)
     @test flux(m) == 4.5
+    @test deepcopy(m) == m
+
+    m = MultiComponentModel(collect(cs))
+    @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
+    @test visibility.(m, xs) ≈ 2 .* visibility.(c1, xs) .+ visibility.(c2, xs)
+    @test flux(m) == 4.5
+    @test deepcopy(m) == m
 end
 
 @testset "convolve beam" begin
