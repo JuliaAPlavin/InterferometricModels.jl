@@ -78,20 +78,41 @@ fwhm_average(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * √(c.ratio_minor_ma
 effective_area(c::EllipticGaussian) = 2π * c.σ_major^2 * c.ratio_minor_major
 
 intensity_peak(c::EllipticGaussian) = flux(c) / effective_area(c)
-function intensity(c::EllipticGaussian)
-    peak = intensity_peak(c)
-    si, co = sincos(position_angle(c))
-    σs_inv = 1 ./ (c.σ_major .* SVector(c.ratio_minor_major, 1))
-    trmat = Diagonal(σs_inv) * @SMatrix([co -si; si co])
-    (xy::XYType) -> let
-        xy_trans = trmat * (xy - c.coords)
-        peak * exp(-1/2 * dot(xy_trans, xy_trans))
-    end
-end
+intensity(c::EllipticGaussian) = intensity(EllipticGaussianCovmat(c))
 
 visibility_phase(c::EllipticGaussian, uv::UVType) = 2π * dot(uv, c.coords)
 visibility_envelope(c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
 position_angle(c::EllipticGaussian) = c.pa_major
+
+
+Base.@kwdef struct EllipticGaussianCovmat{TF,TC,TM} <: ModelComponent
+    flux::TF
+    covmat::TM
+    coords::SVector{2, TC}
+end
+
+EllipticGaussianCovmat(c::CircularGaussian) = let
+    covmat = Diagonal(SVector(1, 1) ./ c.σ^2)
+    EllipticGaussianCovmat(; c.flux, covmat, c.coords)
+end
+
+EllipticGaussianCovmat(c::EllipticGaussian) = let
+    si, co = sincos(position_angle(c))
+    σs_inv = 1 ./ (c.σ_major .* SVector(c.ratio_minor_major, 1))
+    trmat = Diagonal(σs_inv) * @SMatrix([co -si; si co])
+    covmat = trmat' * trmat
+    EllipticGaussianCovmat(; c.flux, covmat, c.coords)
+end
+
+effective_area(c::EllipticGaussianCovmat) = 2π * sqrt(1/det(c.covmat))
+intensity_peak(c::EllipticGaussianCovmat) = flux(c) / effective_area(c)
+function intensity(c::EllipticGaussianCovmat)
+    peak = intensity_peak(c)
+    (xy::XYType) -> let
+        Δxy = xy - c.coords
+        peak * exp(-1/2 * dot(Δxy, c.covmat, Δxy))
+    end
+end
 
 
 Base.@kwdef struct MultiComponentModel{TUP}

@@ -46,12 +46,27 @@ import VLBIData as VLBI
         @test SVector(map((a, i) -> a[i], axiskeys(img), Tuple(argmax(img)))) ≈ SVector(1, 2)  atol=0.03
     end
 
+    @testset "elliptical covmat" begin
+        cs = [
+            CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.)),
+            EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
+        ]
+        for c in cs
+            ccov = EllipticGaussianCovmat(c)
+            @test flux(ccov) == flux(c)
+            @test coords(ccov) == coords(c)
+            @test intensity_peak(ccov) ≈ intensity_peak(c)
+            xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
+            @test intensity(ccov).(xs) ≈ intensity(c).(xs)
+        end
+    end
+
     @testset "multicomponent" begin
         c1 = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
         c2 = EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
         cs = (c1, c1, c2)
         m = MultiComponentModel(cs)
-        xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(rand(10), rand(10))]
+        xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
         @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
     end
 end
