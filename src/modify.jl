@@ -47,6 +47,7 @@ function set_so_that(
         val)
     uv = f.x
     T = typeof(c.σ)
+    val > flux(c) && error("Cannot make visibility higher than total flux")
     newval = √( log(val / c.flux) / (-2π^2 * dot(uv, uv)) )
     @set c.σ = convert(T, newval)
 end
