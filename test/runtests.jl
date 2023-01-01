@@ -203,7 +203,7 @@ end
             ],
             (func, tgt) in [
                 intensity_peak => 1u"Jy/mas^2",
-                Base.Fix2(Tb_peak, 5u"GHz") => 1e11u"K",
+                @optic(Tb_peak(_, 5u"GHz")) => 1e11u"K",
                 Base.Fix2(Base.Fix1(visibility, abs), SVector(1e8, 0)) => 0.5u"Jy",
             ]
         c_upd = set_so_that(c, o, func => tgt)
