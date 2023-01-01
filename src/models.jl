@@ -177,19 +177,3 @@ function convolve(c::EllipticGaussianCovmat, b::EllipticGaussianCovmat)
 end
 
 convolve(m::MultiComponentModel, b::ModelComponent) = MultiComponentModel(convolve.(components(m), b))
-
-
-function model_from_difmap(components::AbstractVector)
-    comps = map(components) do c
-        coords = c.radec
-        flux = c.flux
-        if c.major == 0
-            Point(; flux, coords)
-        elseif c.ratio == 1
-            CircularGaussian(; flux, σ=fwhm_to_σ(c.major), coords)
-        else
-            EllipticGaussian(; flux, σ_major=fwhm_to_σ(c.major), ratio_minor_major=c.ratio, pa_major=c.phi, coords)
-        end
-    end
-    MultiComponentModel(Tuple(comps))
-end
