@@ -72,6 +72,8 @@ import VLBIData as VLBI
 
     @testset "convolve beam" begin
         c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
+        @assert !InterferometricModels.is_beam(c)
+        @assert InterferometricModels.is_beam(beam(CircularGaussian, σ=0.5))
         cc = convolve(c, beam(CircularGaussian, σ=0.5))
         @test cc isa CircularGaussian
         @test coords(cc) ≈ SVector(1, 2)
