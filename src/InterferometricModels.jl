@@ -3,7 +3,7 @@ module InterferometricModels
 using Unitful, UnitfulAstro
 using IntervalSets
 using StaticArrays
-using LinearAlgebra: dot
+using LinearAlgebra: dot, Diagonal
 
 export
     ModelComponent, PointSource, CircularGaussian, EllipticGaussian,

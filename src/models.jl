@@ -78,7 +78,11 @@ fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
 effective_area(c::CircularGaussian) = 2π * c.σ^2
 
 intensity_peak(c::CircularGaussian) = flux(c) / effective_area(c)
-intensity(c::CircularGaussian, xy::XYType) = intensity_peak(c) * exp(-dot(xy - c.coords, xy - c.coords)/(2*c.σ^2))
+function intensity(c::CircularGaussian)
+    peak = intensity_peak(c)
+    mul = -1 / (2*c.σ^2)
+    (xy::XYType) -> peak * exp(mul * dot(xy - c.coords, xy - c.coords))
+end
 
 visibility_amplitude(c::CircularGaussian, uv::UVType) = c.flux * exp(-2π^2 * c.σ^2 * dot(uv, uv))
 visibility_phase(c::CircularGaussian, uv::UVType) = 2π * dot(uv, c.coords)
@@ -102,7 +106,19 @@ fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
 fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
 fwhm_average(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * √(c.ratio_minor_major))  # geometric average
 effective_area(c::EllipticGaussian) = 2π * c.σ_major^2 * c.ratio_minor_major
+
 intensity_peak(c::EllipticGaussian) = flux(c) / effective_area(c)
+function intensity(c::EllipticGaussian)
+    peak = intensity_peak(c)
+    si, co = sincos(position_angle(c))
+    σs_inv = 1 ./ (c.σ_major .* SVector(c.ratio_minor_major, 1))
+    trmat = Diagonal(σs_inv) * @SMatrix([co -si; si co])
+    (xy::XYType) -> let
+        xy_trans = trmat * (xy - c.coords)
+        peak * exp(-1/2 * dot(xy_trans, xy_trans))
+    end
+end
+
 visibility_phase(c::EllipticGaussian, uv::UVType) = 2π * dot(uv, c.coords)
 visibility_envelope(c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
 position_angle(c::EllipticGaussian) = c.pa_major
@@ -114,6 +130,10 @@ end
 
 components(m::MultiComponentModel) = m.components
 visibility(model::MultiComponentModel, uv::UVType) = sum(c -> visibility(c, uv), components(model))
+function intensity(m::MultiComponentModel)
+    bycomp = components(m) .|> intensity
+    (xy::XYType) -> sum(i -> i(xy), bycomp)
+end
 
 @generated n_params(::Type{MultiComponentModel{TUP}}) where {TUP <: Tuple} = sum(n_params(T) for T in fieldtypes(TUP))
 @generated function from_vec(::Type{MultiComponentModel{TUP}}, x::AbstractVector, start=1) where {TUP <: Tuple}
