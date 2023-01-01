@@ -25,9 +25,9 @@ fwhm_average(c::Point{TF,TC}) where {TF,TC} = zero(TC)
 effective_area(c::Point) = fwhm_average(c)^2  # also zero, but need proper units
 
 
-Base.@kwdef struct CircularGaussian{TF,TC} <: ModelComponent
+Base.@kwdef struct CircularGaussian{TF,TS,TC} <: ModelComponent
     flux::TF
-    σ::TC
+    σ::TS
     coords::SVector{2, TC}
 end
 
@@ -37,9 +37,9 @@ fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
 effective_area(c::CircularGaussian) = 2π * c.σ^2
 
 
-Base.@kwdef struct EllipticGaussian{TF,TC,T} <: ModelComponent
+Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
     flux::TF
-    σ_major::TC
+    σ_major::TS
     ratio_minor_major::T
     pa_major::T
     coords::SVector{2, TC}
