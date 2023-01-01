@@ -7,7 +7,7 @@ abstract type ModelComponent end
 Base.broadcastable(c::ModelComponent) = Ref(c)
 
 position_angle((c_from, c_to)::Pair{<:ModelComponent, <:ModelComponent}) = atan( (coords(c_to) - coords(c_from))... )
-distance(c_from::ModelComponent, c_to::ModelComponent) = hypot( (coords(c_from) - coords(c_to))... )
+separation(c_from::ModelComponent, c_to::ModelComponent) = hypot( (coords(c_from) - coords(c_to))... )
 
 flux(c::ModelComponent) = c.flux
 coords(c::ModelComponent) = c.coords
@@ -113,13 +113,14 @@ end
 
 visibility(::typeof(abs), c::Point, uv::UVType) = c.flux
 visibility(::typeof(abs), c::CircularGaussian, uv::UVType) = c.flux * exp(-2π^2 * c.σ^2 * dot(uv, uv))
+visibility(::typeof(abs), c::EllipticGaussian, uv::UVType) = visibility(abs, EllipticGaussianCovmat(c), uv)
 visibility(::typeof(abs), c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, inv(c.covmat), uv))
 
 visibility(c::Point, uv::UVType) = c.flux * exp(im * visibility(angle, c, uv))
 # with fwhm: c.flux * exp(-pi^2 / log(16) * c.fwhm^2 * dot(uv, uv) - 2π*im * dot(uv, c.coords))
 visibility(c::CircularGaussian, uv::UVType) = c.flux * exp(-2π^2 * c.σ^2 * dot(uv, uv) + im * visibility(angle, c, uv))
-visibility(c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, inv(c.covmat), uv) + im * visibility(angle, c, uv))
 visibility(c::EllipticGaussian, uv::UVType) = visibility(EllipticGaussianCovmat(c), uv)
+visibility(c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, inv(c.covmat), uv) + im * visibility(angle, c, uv))
 visibility(m::MultiComponentModel, uv::UVType) = sum(c -> visibility(c, uv), components(m))
 
 visibility_envelope(c::Point, uvdist::Real) = c.flux ± zero(typeof(c.flux))
