@@ -12,6 +12,7 @@ distance(c_from::ModelComponent, c_to::ModelComponent) = hypot( (coords(c_from) 
 flux(c::ModelComponent) = c.flux
 coords(c::ModelComponent) = c.coords
 Tb_peak(c::ModelComponent, ν) = intensity_to_Tb(intensity_peak(c), ν)
+visibility_envelope(::typeof(angle), c::ModelComponent, uvdist::Real) = 0 ± 2π * min(norm(coords(c)) * uvdist, 0.5)
 
 # unitful: use units
 intensity_to_Tb(intensity, ν) = intensity * u"c"^2 / (2 * u"k" * ν^2) |> u"K"
@@ -63,7 +64,7 @@ function visibility(c::CircularGaussian, uv::UVType)
     # with fwhm instead of σ:
     # c.flux * exp(-pi^2 / log(16) * c.fwhm^2 * dot(uv, uv) - 2π*im * dot(uv, c.coords))
 end
-visibility_envelope(c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± 0
+visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± zero(c.flux)
 
 
 Base.@kwdef struct EllipticGaussian{TF,TC,T} <: ModelComponent
@@ -83,7 +84,7 @@ intensity_peak(c::EllipticGaussian) = flux(c) / effective_area(c)
 intensity(c::EllipticGaussian) = intensity(EllipticGaussianCovmat(c))
 
 visibility_phase(c::EllipticGaussian, uv::UVType) = 2π * dot(uv, c.coords)
-visibility_envelope(c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
+visibility_envelope(::typeof(abs), c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
 position_angle(c::EllipticGaussian) = c.pa_major
 
 
