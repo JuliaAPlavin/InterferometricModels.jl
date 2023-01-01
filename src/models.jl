@@ -131,6 +131,13 @@ function intensity(m::MultiComponentModel)
 end
 
 
+Unitful.ustrip(x::ModelComponent) = @modify(ustrip, x |> Properties())
+Unitful.ustrip(x::MultiComponentModel) = @modify(ustrip, x.components |> Elements())
+# piracy, but...
+Unitful.ustrip(x::AbstractInterval) = @modify(ustrip, x |> Properties())
+Unitful.ustrip(u::Unitful.Units, x::AbstractInterval) = @modify(f -> ustrip(u, f), x |> Properties())
+
+
 beam(::Type{CircularGaussian}; σ) = CircularGaussian(; flux=2π*σ^2, σ, coords=SVector(zero(σ), zero(σ)))
 beam(::Type{EllipticGaussian}; σ_major, ratio_minor_major, pa_major) =
     EllipticGaussian(; flux=2π*σ_major^2*ratio_minor_major, σ_major, ratio_minor_major, pa_major, coords=SVector(zero(σ_major), zero(σ_major)))
