@@ -173,6 +173,27 @@ end
     @test ustrip(u"cm", 1u"m"..2u"m") == 100..200
 end
 
+@testset "set" begin
+    c = Point(flux=1.5u"Jy", coords=SVector(1., 2.)u"mas")
+    @test flux(@set(flux(c) = 2u"Jy")) == 2u"Jy"
+    @test coords(@set(coords(c) = SVector(-10, 0.5)u"mas")) == SVector(-10, 0.5)u"mas"
+
+    c = CircularGaussian(flux=1.0u"Jy", σ=0.1u"mas", coords=SVector(0, 0.)u"mas")
+    @test flux(@set(flux(c) = 2u"Jy")) == 2u"Jy"
+    @test fwhm_max(@set(fwhm_max(c) = 1.0u"mas")) == 1u"mas"
+    @test fwhm_min(@set(fwhm_min(c) = 1.0u"mas")) == 1u"mas"
+    @test fwhm_average(@set(fwhm_average(c) = 1.0u"mas")) == 1u"mas"
+    @test coords(@set(coords(c) = SVector(-10, 0.5)u"mas")) == SVector(-10, 0.5)u"mas"
+
+    c = EllipticGaussian(flux=1.5u"Jy", σ_major=0.5u"mas", ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.)u"mas")
+    @test flux(@set(flux(c) = 2u"Jy")) == 2u"Jy"
+    @test fwhm_max(@set(fwhm_max(c) = 1.0u"mas")) == 1u"mas"
+    @test fwhm_min(@set(fwhm_max(c) = 1.0u"mas")) == fwhm_min(c)
+    @test fwhm_min(@set(fwhm_min(c) = 1.0u"mas")) == 1u"mas"
+    @test fwhm_max(@set(fwhm_min(c) = 1.0u"mas")) == fwhm_max(c)
+    @test coords(@set(coords(c) = SVector(-10, 0.5)u"mas")) == SVector(-10, 0.5)u"mas"
+end
+
 @testset "set so that" begin
     c = CircularGaussian(flux=1.0u"Jy", σ=0.1u"mas", coords=SVector(0, 0.)u"mas")
     @testset "$o $func" for
