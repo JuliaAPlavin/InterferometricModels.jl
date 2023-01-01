@@ -6,14 +6,21 @@ function transform end
 struct Identity <: Transformation end
 transform(tr::Identity, x, ::Val) = x
 
-Base.@kwdef struct FuncTransformation{T1, T2, T3} <: Transformation
+struct FuncTransformation{T1, T2, T3} <: Transformation
 	flux::T1
 	σ::T2
-	x::T3
+	coords::T3
 end
+
+function FuncTransformation(; flux, σ, x=nothing, coords=nothing)
+    @assert isnothing(x) != isnothing(coords)
+    coords = @something(coords, c -> (x(c[1]), x(c[2])))
+    return FuncTransformation(flux, σ, coords)
+end
+
 transform(tr::FuncTransformation, x, ::Val{:flux}) = tr.flux(x)
 transform(tr::FuncTransformation, x, ::Val{:σ}) = tr.σ(x)
-transform(tr::FuncTransformation, x, ::Val{:coords}) = (tr.x(x[1]), tr.x(x[2]))
+transform(tr::FuncTransformation, x, ::Val{:coords}) = tr.coords(x)
 end
 
 
