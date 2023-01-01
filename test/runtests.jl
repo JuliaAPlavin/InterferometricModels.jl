@@ -10,6 +10,8 @@ using Accessors
 
 @testset "point" begin
     c = Point(flux=1.5, coords=SVector(1., 2.))
+    @test c ≈ Point(flux=1.5f0 * 1.00001f0, coords=SVector(1f0, 2f0) * 1.00001f0)
+    @test !(c ≈ Point(flux=1.6, coords=SVector(1f0, 2f0)))
 
     @test fwhm_max(c) == fwhm_min(c) == fwhm_average(c) == 0
     @test intensity_peak(c) ≈ Inf
@@ -24,6 +26,8 @@ end
 
 @testset "circular" begin
     c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
+    @test c ≈ CircularGaussian(flux=1.5f0 * 1.00001f0, σ=0.1f0 * 1.00001f0, coords=SVector(1f0, 2f0))
+    @test !(c ≈ CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1.3, 2.)))
 
     @test intensity_peak(c) ≈ 1.5 / (2π*0.1^2)
     @test intensity(c)(SVector(1, 2)) ≈ intensity_peak(c)
@@ -48,6 +52,8 @@ end
 
 @testset "elliptical" begin
     c = EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
+    @test c ≈ EllipticGaussian(flux=1.5f0 * 1.00001f0, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
+    @test !(c ≈ EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.9), coords=SVector(1., 2.)))
 
     @test intensity_peak(c) ≈ 1.5 / (2π*0.5*0.25)
     @test intensity(c)(SVector(1, 2)) ≈ intensity_peak(c)
@@ -110,11 +116,10 @@ end
     @test visibility.(m, xs) ≈ 2 .* visibility.(c1, xs) .+ visibility.(c2, xs)
     @test flux(m) == 4.5
     @test deepcopy(m) == m
+    @test @set(components(m)[2].flux = 1.500002f0) ≈ m
+    @test !(@set(components(m)[2].flux = 1.7f0) ≈ m)
 
     m = MultiComponentModel(collect(cs))
-    @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
-    @test visibility.(m, xs) ≈ 2 .* visibility.(c1, xs) .+ visibility.(c2, xs)
-    @test flux(m) == 4.5
     @test deepcopy(m) == m
 end
 

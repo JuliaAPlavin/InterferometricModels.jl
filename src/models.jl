@@ -153,3 +153,9 @@ Unitful.ustrip(x::MultiComponentModel) = @modify(ustrip, x.components |> Element
 # piracy, but...
 Unitful.ustrip(x::AbstractInterval) = @modify(ustrip, x |> Properties())
 Unitful.ustrip(u::Unitful.Units, x::AbstractInterval) = @modify(f -> ustrip(u, f), x |> Properties())
+
+
+Base.isapprox(a::ModelComponent, b::ModelComponent; kwargs...) =
+    propertynames(a) == propertynames(b) && all(k -> isapprox(getproperty(a, k), getproperty(b, k); kwargs...), propertynames(a))
+Base.isapprox(a::MultiComponentModel, b::MultiComponentModel; kwargs...) =
+    length(components(a)) == length(components(b)) && all(((x, y),) -> isapprox(x, y; kwargs...), zip(components(a), components(b)))
