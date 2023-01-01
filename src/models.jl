@@ -131,7 +131,7 @@ visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux *
 visibility_envelope(::typeof(abs), c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
 
 
-Unitful.ustrip(x::ModelComponent) = @modify(ustrip, x |> Properties())
+Unitful.ustrip(x::ModelComponent) = @modify(x -> ustrip.(x), x |> Properties())
 Unitful.ustrip(x::MultiComponentModel) = @modify(ustrip, x.components |> Elements())
 # piracy, but...
 Unitful.ustrip(x::AbstractInterval) = @modify(ustrip, x |> Properties())
