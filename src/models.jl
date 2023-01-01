@@ -17,23 +17,23 @@ intensity_to_Tb(intensity, ν) = intensity * u"c"^2 / (2 * u"k" * ν^2) |> u"K"
 intensity_to_Tb(intensity::Real, ν) = ustrip(u"K", intensity_to_Tb(intensity*u"Jy/(1e-3*arcsecond)^2", ν))
 
 
-Base.@kwdef struct PointSource{TF,TC} <: ModelComponent
+Base.@kwdef struct Point{TF,TC} <: ModelComponent
     flux::TF
     coords::SVector{2, TC}
 end
 
-fwhm_max(c::PointSource) = fwhm_average(c)
-fwhm_min(c::PointSource) = fwhm_average(c)
-fwhm_average(c::PointSource{TF,TC}) where {TF,TC} = zero(TC)
-effective_area(c::PointSource) = fwhm_average(c)^2  # also zero, but need proper units
-intensity_peak(c::PointSource) = flux(c) / effective_area(c)
+fwhm_max(c::Point) = fwhm_average(c)
+fwhm_min(c::Point) = fwhm_average(c)
+fwhm_average(c::Point{TF,TC}) where {TF,TC} = zero(TC)
+effective_area(c::Point) = fwhm_average(c)^2  # also zero, but need proper units
+intensity_peak(c::Point) = flux(c) / effective_area(c)
 
-visibility_amplitude(c::PointSource, uv::UVType) = c.flux
-visibility_phase(c::PointSource, uv::UVType) = 2π * dot(uv, c.coords)
-function visibility(c::PointSource, uv::UVType)
+visibility_amplitude(c::Point, uv::UVType) = c.flux
+visibility_phase(c::Point, uv::UVType) = 2π * dot(uv, c.coords)
+function visibility(c::Point, uv::UVType)
     c.flux * exp(-π2im * dot(uv, c.coords))
 end
-visibility_envelope(c::PointSource, uvdist::Real) = c.flux ± zero(typeof(c.flux))
+visibility_envelope(c::Point, uvdist::Real) = c.flux ± zero(typeof(c.flux))
 
 
 Base.@kwdef struct CircularGaussian{TF,TC} <: ModelComponent
@@ -111,7 +111,7 @@ function model_from_difmap(components::AbstractVector)
         coords = c.radec
         flux = c.flux
         if c.major == 0
-            PointSource(; flux, coords)
+            Point(; flux, coords)
         elseif c.ratio == 1
             CircularGaussian(; flux, σ=fwhm_to_σ(c.major), coords)
         else
