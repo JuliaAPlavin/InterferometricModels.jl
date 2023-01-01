@@ -13,11 +13,13 @@ export
     intensity_peak, intensity,
     visibility, visibility_envelope,
     convolve, beam,
-    ustrip
+    ustrip,
+    set_so_that
 
 include("utils.jl")
 include("models.jl")
 include("convolve.jl")
+include("modify.jl")
 include("from_vec.jl")
 
 end

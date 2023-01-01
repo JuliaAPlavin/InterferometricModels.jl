@@ -1,10 +1,11 @@
 using Test
 using InterferometricModels
-using Unitful, UnitfulAstro
+using Unitful, UnitfulAstro, UnitfulAngles
 using StaticArrays
 using LinearAlgebra
 using RectiGrids
 using IntervalSets
+using Accessors
 
 
 @testset "point" begin
@@ -170,6 +171,40 @@ end
 
     @test ustrip(1u"m"..2u"m") == 1..2
     @test ustrip(u"cm", 1u"m"..2u"m") == 100..200
+end
+
+@testset "set so that" begin
+    c = CircularGaussian(flux=1.0u"Jy", σ=0.1u"mas", coords=SVector(0, 0.)u"mas")
+    @testset "$o $func" for
+            (o, o_other) in [
+                (@optic(_.σ), @optic(_.flux)),
+                (@optic(_.flux), @optic(_.σ)),
+            ],
+            (func, tgt) in [
+                intensity_peak => 1u"Jy/mas^2",
+                Base.Fix2(Tb_peak, 5u"GHz") => 1e11u"K",
+                Base.Fix2(Base.Fix1(visibility, abs), SVector(1e8, 0)) => 0.5u"Jy",
+            ]
+        c_upd = set_so_that(c, o, func => tgt)
+        @test coords(c_upd) == coords(c)
+        @test o_other(c_upd) == o_other(c)
+        @test o(c_upd) != o(c)
+        @test func(c_upd) ≈ tgt
+    end
+    @testset "$o $func" for
+            (o, o_other) in [
+                (@optic(_.σ), @optic(_.flux)),
+            ],
+            (func, tgt) in [
+                fwhm_average => 10u"mas",
+                effective_area => 10u"mas^2",
+            ]
+        c_upd = set_so_that(c, o, func => tgt)
+        @test coords(c_upd) == coords(c)
+        @test o_other(c_upd) == o_other(c)
+        @test o(c_upd) != o(c)
+        @test func(c_upd) ≈ tgt
+    end
 end
 
 
