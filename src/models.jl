@@ -123,8 +123,8 @@ visibility(c::EllipticGaussian, uv::UVType) = visibility(EllipticGaussianCovmat(
 visibility(c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, inv(c.covmat), uv) + im * visibility(angle, c, uv))
 visibility(m::MultiComponentModel, uv::UVType) = sum(c -> visibility(c, uv), components(m))
 
-visibility_envelope(c::Point, uvdist::Real) = c.flux ± zero(typeof(c.flux))
-visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± zero(c.flux)
+visibility_envelope(::typeof(abs), c::Point, uvdist::Real) = c.flux ± eps(c.flux)
+visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± eps(c.flux)
 visibility_envelope(::typeof(abs), c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
 
 
