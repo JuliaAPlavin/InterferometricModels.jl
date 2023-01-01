@@ -69,6 +69,14 @@ import VLBIData as VLBI
         xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
         @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
     end
+
+    @testset "convolve" begin
+        c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
+        cc = convolve(c, beam(CircularGaussian, σ=0.5))
+        @test cc isa CircularGaussian
+        @test coords(cc) ≈ SVector(1, 2)
+        @test 1.4 < intensity_peak(cc) < 1.5
+    end
 end
 
 # @testset begin

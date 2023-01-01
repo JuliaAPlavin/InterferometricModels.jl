@@ -4,6 +4,8 @@ const XYType = StaticVector{2}
 
 abstract type ModelComponent end
 
+Base.broadcastable(c::ModelComponent) = Ref(c)
+
 position_angle((c_from, c_to)::Pair{<:ModelComponent, <:ModelComponent}) = atan( (coords(c_to) - coords(c_from))... )
 distance(c_from::ModelComponent, c_to::ModelComponent) = hypot( (coords(c_from) - coords(c_to))... )
 
@@ -118,6 +120,7 @@ end
 Base.@kwdef struct MultiComponentModel{TUP}
     components::TUP
 end
+Base.broadcastable(c::MultiComponentModel) = Ref(c)
 
 components(m::MultiComponentModel) = m.components
 visibility(model::MultiComponentModel, uv::UVType) = sum(c -> visibility(c, uv), components(model))
@@ -125,6 +128,55 @@ function intensity(m::MultiComponentModel)
     bycomp = components(m) .|> intensity
     (xy::XYType) -> sum(i -> i(xy), bycomp)
 end
+
+
+beam(::Type{CircularGaussian}; σ) = CircularGaussian(; flux=2π*σ^2, σ, coords=SVector(zero(σ), zero(σ)))
+beam(::Type{EllipticGaussian}; σ_major, ratio_minor_major, pa_major) =
+    EllipticGaussian(; flux=2π*σ_major^2*ratio_minor_major, σ_major, ratio_minor_major, pa_major, coords=SVector(zero(σ_major), zero(σ_major)))
+
+
+function convolve(c::Point, b::CircularGaussian)
+    @assert coords(b) == SVector(0, 0)
+    return CircularGaussian(
+        flux=flux(c) * flux(b),
+        σ=b.σ,
+        coords=coords(c),
+    )
+end
+
+function convolve(c::Point, b::EllipticGaussian)
+    @assert coords(b) == SVector(0, 0)
+    return EllipticGaussian(;
+        flux=flux(c) * flux(b),
+        b.σ_major,
+        b.ratio_minor_major,
+        b.pa_major,
+        coords=coords(c),
+    )
+end
+
+function convolve(c::CircularGaussian, b::CircularGaussian)
+    @assert coords(b) == SVector(0, 0)
+    return CircularGaussian(
+        flux=flux(c) * flux(b),
+        σ=hypot(c.σ, b.σ),
+        coords=coords(c),
+    )
+end
+
+let TS = [CircularGaussian, EllipticGaussian, EllipticGaussianCovmat]
+    @eval convolve(c::Union{$TS...}, b::Union{$TS...}) = convolve(EllipticGaussianCovmat(c), EllipticGaussianCovmat(b))
+end
+function convolve(c::EllipticGaussianCovmat, b::EllipticGaussianCovmat)
+    @assert coords(b) == SVector(0, 0)
+    return EllipticGaussianCovmat(
+        flux=flux(c) * flux(b),
+        covmat=inv(inv(c.covmat) + inv(b.covmat)),
+        coords=coords(c),
+    )
+end
+
+convolve(m::MultiComponentModel, b::ModelComponent) = MultiComponentModel(convolve.(components(m), b))
 
 
 function model_from_difmap(components::AbstractVector)
