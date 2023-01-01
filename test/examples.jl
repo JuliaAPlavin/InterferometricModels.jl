@@ -18,11 +18,13 @@ end
 begin
 	using Revise
 	import Pkg
-	Pkg.develop(path="..")
+	eval(:(Pkg.develop(path="..")))
 	Pkg.resolve()
 	using InterferometricModels
-	const IM = InterferometricModels
 end
+
+# ╔═╡ 10d21164-fa86-4af0-a495-8a56932dccba
+using VLBIData
 
 # ╔═╡ afc0c2b4-cb50-4eec-8a85-eb8c54ad5d6a
 using StaticArrays
@@ -46,37 +48,62 @@ using LinearAlgebra
 # ╔═╡ 39678544-01fe-43f8-a032-2ba30cc97a43
 using PlutoMy
 
-# ╔═╡ 10d21164-fa86-4af0-a495-8a56932dccba
-import VLBIData as VLBI
+# ╔═╡ 1fb59094-dd9f-479a-a62c-f65a04f40371
+using Statistics
+
+# ╔═╡ ee546c1c-39c8-421d-8ff2-cf135eb0cb10
+using Difmap
+
+# ╔═╡ 67a0c491-2d7a-4dda-af57-8412fdb6c04a
+using BenchmarkTools
+
+# ╔═╡ 2c6f044e-70d7-41e0-a2f4-e4d72fd6c13b
+using ProfileSVG
+
+# ╔═╡ 73aa0405-1aab-4321-9c32-9c098c2b8772
+using IntervalSets
+
+# ╔═╡ ca9641ba-ca23-4fd2-83a6-b31612a24d09
+using Colors
+
+# ╔═╡ 11065b35-d474-4844-af33-4a175881e89e
+using Unitful
+
+# ╔═╡ 3c1637e7-44dc-495c-acab-4c0dbb6bd26c
+begin
+	using Accessors
+	ustrip_rad(x::Real) = x  # XXX: may be confusing is passed a unitless model in mas...
+	ustrip_rad(x::T) where {T <: Quantity} = dimension(T) == dimension(u"rad") ? ustrip(u"rad", x) : ustrip(x)
+	ustrip_rad(x::AbstractArray) = map(ustrip_rad, x)
+	ustrip_rad(x::ModelComponent) = @modify(ustrip_rad, x |> Properties())
+	ustrip_rad(x::MultiComponentModel) = @modify(ustrip_rad, x.components |> Elements())
+end
+
+# ╔═╡ 093ca09d-c09f-48c0-8477-e3cd9c6f9bc9
+using DataPipes
 
 # ╔═╡ b61061c6-cbeb-40d4-a09b-5884238a0093
 
 
-# ╔═╡ 2cfff674-9c4a-4270-ba29-8ed9fd570693
-VLBI.load(VLBI.DifmapModel, "./data/difmap_model.mod")
-
-# ╔═╡ 8cb483c3-6c86-4a3c-b509-7323709190a3
-mod = IM.model_from_difmap(VLBI.load(VLBI.DifmapModel, "./data/difmap_model.mod"))
+# ╔═╡ fd8d2a74-38a3-405f-81ee-ededc6c71772
+mod = VLBI.load("./data/difmap_model.mod")
 
 # ╔═╡ dc475ee0-f5c5-43af-8891-60e4bf834241
-
-
-# ╔═╡ bd39f02d-1a60-4b20-a13c-b59f23f99518
 
 
 # ╔═╡ 821409d1-18da-4116-9c11-3730a1ab5c32
 let
 	n = 1000
-	img = intensity(mod).(grid(SVector, ra=range(10, -10, length=n), dec=range(-10, 10, length=n)))
+	img = intensity(ustrip(mod)).(grid(SVector, ra=range(10, -10, length=n), dec=range(-10, 10, length=n)))
 	plt.figure()
 	imshow_ax(img, ColorBar(unit="Jy/mas²"); norm=SymLog(linthresh=1e-3), cmap=:inferno)
 	plt.gcf()
 end
 
 # ╔═╡ e82945d2-ee22-4e02-98a8-49965f3a73ee
-function plot_imageplane(m::MultiComponentModel)
+function plot_imageplane(m::MultiComponentModel; kwargs...)
 	for c in components(m)
-		plot_imageplane(c)
+		plot_imageplane(c; kwargs...)
 	end
 end
 
@@ -103,12 +130,233 @@ end
 # ╔═╡ 845dc0fc-d649-4442-aef6-953f0ffb1ecc
 let
 	plt.figure()
-	plot_imageplane(mod)
+	plot_imageplane(ustrip(mod))
 	plt.gca().set_aspect(:equal)
 	set_xylims((-5..5)^2; inv=:x)
 	xylabels("RA", "Dec"; inline=true)
 	plt.gcf()
 end
+
+# ╔═╡ 2e00e1fe-1c23-40d1-bf8a-15551d6445db
+
+
+# ╔═╡ b849ea9e-f703-4d5e-ac43-d0c220869f48
+
+
+# ╔═╡ 4bb211bf-cf8f-465a-a61c-97194a27454a
+mod
+
+# ╔═╡ 8d84c703-bcf7-4d44-897f-bd3834930811
+@bind parts MultiCheckBox([:envelopes, :data, :model]; default=[:envelopes, :data, :model])
+
+# ╔═╡ b80db8e3-3753-45d4-a09d-834e1ab1e1f7
+mod
+
+# ╔═╡ 94453978-9f72-47d0-9ebd-22d13e8ddbe5
+@p VLBI.load("./data/J1033+6051_U_2010_12_24_moj_vis.fits") |> Tables.rows() |> filter(_.stokes ∈ (:RR,)) |> mutate(_.uv.u >= 0 ? (;_.uv, _.visibility) : (;uv=-_.uv, visibility=conj(_.visibility))) |> map(angle(_.visibility) |> rad2deg) |> (length(__), mean(__), std(__), extrema(__))
+
+# ╔═╡ e66c25f5-8f39-474d-86eb-1e518f5760f0
+let
+	dr = Difmap.execute(
+		"""
+		observe vis.fits
+		select RR
+		vis_stats amplitude
+		vis_stats phase
+		vis_stats real
+		vis_stats imaginary
+		exit
+		""";
+		in_files=[
+			"./data/J1033+6051_U_2010_12_24_moj_vis.fits" => "vis.fits",
+			"./data/difmap_model.mod" => "mod.mod",
+		],
+	)
+	Difmap.inout_pairs(dr)
+end
+
+# ╔═╡ cc90ab80-cf2c-4927-9c56-06f683d8f40b
+let
+	pltnames = ["radplot", "uvplot"]
+	tdir = mktempdir()
+	dr = Difmap.execute(
+		"""
+		observe vis.fits
+		select RR
+		rmodel mod.mod
+		rflags="m3"
+		device "radplot.ps/VCPS"
+		radplot "", 0, 0, 0, 0, -15, +15
+		device "uvplot.ps/VCPS"
+		uvplot
+		exit
+		""";
+		in_files=[
+			"./data/J1033+6051_U_2010_12_24_moj_vis.fits" => "vis.fits",
+			"./data/difmap_model.mod" => "mod.mod",
+		],
+		out_files=["radplot.ps", "uvplot.ps"] .=> tempname.(),
+	)
+	# Difmap.inout_pairs(dr)
+	@assert dr.success
+	Difmap.plots(dr)
+end
+
+# ╔═╡ d6d4260f-9627-4560-b25a-81b5318d8f57
+
+
+# ╔═╡ 354ebf8d-d4f4-487d-bb24-d6715e07d81b
+data = @p VLBI.load("./data/J1033+6051_U_2010_12_24_moj_vis.fits") |> Tables.rows() |> filter(_.stokes ∈ (:RR,))
+
+# ╔═╡ e50d7eb7-a958-4d90-8a5a-b00bbdc958b7
+map(r -> visibility(mod, r.uv), data)
+
+# ╔═╡ 4c25ce58-0138-4ae5-ab5b-2f591ca20a55
+begin
+	floattype(T::Type, x::Number) = T(x)
+	floattype(T::Type, x::AbstractArray) = T.(x)
+	floattype(T::Type, x::ModelComponent) = @modify(x->floattype(T,x), x |> Properties())
+	floattype(T::Type, x::MultiComponentModel) = @modify(x->floattype(T,x), x.components |> Elements())
+end
+
+# ╔═╡ 2345c32d-3db7-42f6-a5ff-a85db528a41c
+umod = ustrip_rad(mod)
+
+# ╔═╡ c75ac04d-633a-4313-aa30-ee1c9e68e2ba
+map(r -> visibility(umod, r.uv), data)
+
+# ╔═╡ d61f3d23-3c58-4f0b-a46b-96d48b7c168a
+map(r -> visibility(umod, r.uv), data)
+
+# ╔═╡ 855e8bc6-c620-4b37-b04f-c23bc0cdfcd5
+
+
+# ╔═╡ b7cde253-8c16-4a0b-9256-619976f2bf08
+@benchmark map(r -> visibility($umod, r.uv), $data)
+
+# ╔═╡ a7cf79e9-e9aa-4daf-8cc0-6e7eb4b64ddc
+@benchmark map(r -> $(visibility(mod))(r.uv), $data)
+
+# ╔═╡ 8cdd9b3f-fbb6-4969-91d5-86487b0a5fcb
+@benchmark let
+	visf = visibility($umod)
+	sum(r -> visf(r.uv), $data)
+end
+
+# ╔═╡ b41c6a65-7e67-4389-9e2c-20f10504ef91
+@profview for _ in 1:1000
+	visf = visibility(mod)
+	sum(r -> visf(r.uv), data)
+end
+
+# ╔═╡ 728e1356-e1f0-408f-9875-e68a52c7f78a
+
+
+# ╔═╡ 4ef03d45-cb2f-4aa5-9edc-0e9dbeed22dc
+begin
+	proper_ustrip(::typeof(abs), x) = ustrip(x)
+	proper_ustrip(::typeof(angle), x) = ustrip(u"°", x)
+
+	proper_label(::typeof(abs)) = "Amplitude (Jy)"
+	proper_label(::typeof(angle)) = "Phase (°)"
+end
+
+# ╔═╡ fee5e403-7e44-47e2-bf63-13dea839e029
+function radplot(func::typeof(abs), c::ModelComponent, uvrng::AbstractInterval{<:Real}; n=100, alpha=0.2)
+	uvdists = range(extrema(uvrng)...; length=n)
+	vises = proper_ustrip.(func, visibility_envelope.(func, c, uvdists))
+	color = plt.gca()._get_lines.prop_cycler.__next__()["color"] |> mpl_color
+	plt.fill_between(uvdists, minimum.(vises), maximum.(vises); ec=color, fc=coloralpha(color, alpha))
+	plt.xlabel("UV distance (λ)")
+	plt.ylabel(proper_label(func))
+	plt.xlim(extrema(uvrng)...)
+	func == abs && plt.ylim(0)
+end
+
+# ╔═╡ 95883f17-4ccc-4de7-bd29-094e3a8ccb88
+function radplot(func::typeof(angle), c::ModelComponent, uvrng::AbstractInterval{<:Real}; n=100, alpha=0.2)
+	uvdists = range(extrema(uvrng)...; length=n)
+	vises = proper_ustrip.(func, visibility_envelope.(func, c, uvdists))
+	color = plt.gca()._get_lines.prop_cycler.__next__()["color"] |> mpl_color
+	plt.fill_between(uvdists, minimum.(vises), maximum.(vises); ec=color, fc=coloralpha(color, alpha))
+	plt.xlabel("UV distance (λ)")
+	plt.ylabel(proper_label(func))
+
+	yl = Interval(plt.ylim()...)
+	(0 ± 180) ⊆ yl && plt.ylim(extrema(0 ± 180))	
+	plt.xlim(extrema(uvrng)...)
+end
+
+# ╔═╡ 541dae20-5a32-452c-b8bf-91854e0aaee1
+function radplot(funcs::Vector{<:Function}, args...; ax, kwargs...)
+	@assert length(ax) == length(funcs)
+	for (i, (a, f)) in zip(ax, funcs) |> enumerate
+		plt.sca(a)
+		radplot(f, args...; kwargs...)
+	end
+	for a in ax[begin+1:end-1]
+		a.set_xlabel("")
+	end
+	if length(ax) > 1
+		ax[1].xaxis.tick_top()
+		ax[1].xaxis.set_label_position(:top)
+	end
+end
+
+# ╔═╡ 637f8e59-cb27-4929-a127-7beece3059be
+begin
+	function ylim_shrink(int)
+		l = Interval(plt.ylim()...)
+		int ⊆ l && plt.ylim(extrema(int))
+	end
+	
+	function ylim_expand(int)
+		l = Interval(plt.ylim()...)
+		l ⊆ int && plt.ylim(extrema(int))
+	end
+end
+
+# ╔═╡ 3de9053c-fbf9-4462-ad9c-a45ffca79e6b
+function radplot(func, mod, c::Vector{<:NamedTuple})
+	uvdists = @p c |> map(norm(_.uv))
+	vises = @p c |> map(proper_ustrip(func, func(visibility(mod, _.uv))))
+	plt.xlim(auto=true)
+	plt.ylim(auto=true)
+	plt.scatter(uvdists, vises; s=0.1, c=:red)
+	plt.xlabel("UV distance (λ)")
+	plt.ylabel(proper_label(func))
+	plt.xlim(0)
+	func == abs && plt.ylim(0)
+	func == angle && ylim_shrink(0±180)
+end
+
+# ╔═╡ 12c99ec0-3b30-4bd2-bc75-70075c844a7a
+function radplot(func, c::Vector{<:NamedTuple})
+	uvdists = @p c |> map(norm(_.uv))
+	vises = @p c |> map(proper_ustrip(func, func(_.visibility)))
+	plt.xlim(auto=true)
+	plt.ylim(auto=true)
+	plt.plot(uvdists, vises, ","; color=:k, zorder=1)  # zorder=1 is default for scatter, while zorder=2 for plot
+	plt.xlabel("UV distance (λ)")
+	plt.ylabel(proper_label(func))
+	plt.xlim(0)
+	func == abs && plt.ylim(0)
+	func == angle && ylim_shrink(0±180)
+end
+
+# ╔═╡ 63b0dfb7-3800-44c5-962c-3e005420e993
+let mod = VLBI.load("./data/difmap_model.mod")
+	data = @p VLBI.load("./data/J1033+6051_U_2010_12_24_moj_vis.fits") |> Tables.rows() |> filter(_.stokes ∈ (:RR,)) |> mutate(_.uv.u >= 0 ? (;_.uv, _.visibility) : (;uv=-_.uv, visibility=conj(_.visibility)))
+	_, ax = plt.subplots(2, 1, figsize=(6, 8), gridspec_kw=Dict(:height_ratios => [3, 3], :hspace => 0.1))
+	:envelopes ∈ parts && radplot.(Ref([abs, angle]), components(mod), Ref(0..maximum(x->norm(x.uv), data)); ax)
+	:data ∈ parts && radplot([abs, angle], data; ax)
+	:model ∈ parts && radplot([abs, angle], mod, data; ax)
+	plt.ylim(-15, 15)
+	plt.gcf()
+end
+
+# ╔═╡ 145be160-2b29-4bc1-9a27-4493d787512b
+
 
 # ╔═╡ b1614a63-ab6f-43de-9b85-25144e3dd4a5
 
@@ -203,7 +451,7 @@ end
 # ╔═╡ c83145f0-7eb0-446f-bc3e-74f9abf5c041
 let
 	n = 200
-	img = intensity(convolve(mod, b)).(grid(SVector, ra=range(10, -10, length=n), dec=range(-10, 10, length=n)))
+	img = intensity(ustrip(convolve(mod, b))).(grid(SVector, ra=range(10, -10, length=n), dec=range(-10, 10, length=n)))
 	plt.figure()
 	imshow_ax(img, ColorBar(unit="Jy/b"); norm=SymLog(linthresh=1e-4), cmap=:inferno)
 	plt.gcf()
@@ -212,28 +460,45 @@ end
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
+DataPipes = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
+Difmap = "697f6f98-b792-4bca-85fe-71b3d053de65"
 InterferometricModels = "b395d269-c2ec-4df6-b679-36919ad600ca"
+IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoMy = "13de7d54-404c-4927-b51c-7903105debb2"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+ProfileSVG = "132c30aa-f267-4189-9183-c8a63c7e05e6"
 PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 PyPlotUtils = "5384e752-6c47-47b3-86ac-9d091b110b31"
 RectiGrids = "8ac6971d-971d-971d-971d-971d5ab1a71a"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 VLBIData = "679fc9cc-3e84-11e9-251b-cbd013bd8115"
 
 [compat]
+Accessors = "~0.1.8"
+BenchmarkTools = "~1.2.2"
+Colors = "~0.12.8"
+DataPipes = "~0.2.5"
+Difmap = "~0.1.15"
 InterferometricModels = "~0.1.0"
+IntervalSets = "~0.5.3"
 PlutoMy = "~0.1.9"
 PlutoUI = "~0.7.30"
+ProfileSVG = "~0.2.1"
 PyPlot = "~2.10.0"
-PyPlotUtils = "~0.1.2"
+PyPlotUtils = "~0.1.3"
 RectiGrids = "~0.1.6"
 Revise = "~3.3.1"
 StaticArrays = "~1.3.2"
-VLBIData = "~0.2.5"
+Unitful = "~1.10.1"
+VLBIData = "~0.3.1"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -260,6 +525,17 @@ git-tree-sha1 = "8eaf9f1b4921132a4cff3f36a1d9ba923b14a481"
 uuid = "6e696c72-6542-2067-7265-42206c756150"
 version = "1.1.4"
 
+[[deps.AbstractTrees]]
+git-tree-sha1 = "03e0550477d86222521d254b741d470ba17ea0b5"
+uuid = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
+version = "0.3.4"
+
+[[deps.Accessors]]
+deps = ["Compat", "CompositionsBase", "ConstructionBase", "Future", "LinearAlgebra", "MacroTools", "Requires", "Test"]
+git-tree-sha1 = "0fa53d25794bf1c754f909ee4b0ac31eabff952f"
+uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
+version = "0.1.8"
+
 [[deps.Adapt]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "af92965fb30777147966f58acb05da51c5616b5f"
@@ -271,9 +547,9 @@ uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 
 [[deps.ArrayInterface]]
 deps = ["Compat", "IfElse", "LinearAlgebra", "Requires", "SparseArrays", "Static"]
-git-tree-sha1 = "ffc6588e17bcfcaa79dfa5b4f417025e755f83fc"
+git-tree-sha1 = "1ee88c4c76caa995a885dc2f22a5d548dfbbc0ba"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "4.0.1"
+version = "3.2.2"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -307,9 +583,9 @@ version = "3.49.1+0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "926870acb6cbcf029396f2f2de030282b6bc1941"
+git-tree-sha1 = "54fc4400de6e5c3e27be6047da2ef6ba355511f8"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.11.4"
+version = "1.11.6"
 
 [[deps.ChangesOfVariables]]
 deps = ["ChainRulesCore", "LinearAlgebra", "Test"]
@@ -350,6 +626,11 @@ git-tree-sha1 = "d5b014b216dc891e81fea299638e4c10c657b582"
 uuid = "b152e2b5-7a66-4b01-a709-34e65c35f657"
 version = "0.1.2"
 
+[[deps.CompositionsBase]]
+git-tree-sha1 = "455419f7e328a1a2493cabc6428d79e951349769"
+uuid = "a33af91c-f02d-484b-be07-31d278c5ca2b"
+version = "0.1.1"
+
 [[deps.Conda]]
 deps = ["Downloads", "JSON", "VersionParsing"]
 git-tree-sha1 = "6cdc8832ba11c7695f494c9d9a1c31e90959ce0f"
@@ -373,6 +654,12 @@ git-tree-sha1 = "cc70b17275652eb47bc9e5f81635981f13cea5c8"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.9.0"
 
+[[deps.DataPipes]]
+deps = ["Accessors", "SplitApplyCombine"]
+git-tree-sha1 = "6da546248579d3084c06d1babd1431c64f981441"
+uuid = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
+version = "0.2.5"
+
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
 git-tree-sha1 = "3daef5523dd2e769dad2365274f760ff5f282c7d"
@@ -384,6 +671,12 @@ git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
 uuid = "e2d170a0-9d28-54be-80f0-106bbe20a464"
 version = "1.0.0"
 
+[[deps.DateFormats]]
+deps = ["Dates", "DocStringExtensions"]
+git-tree-sha1 = "c3f0b713b48dab6e052384e6f4d0e077469bf296"
+uuid = "44557152-fe0a-4de1-8405-416d90313ce6"
+version = "0.1.12"
+
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -391,6 +684,18 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 [[deps.DelimitedFiles]]
 deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+
+[[deps.Dictionaries]]
+deps = ["Indexing", "Random"]
+git-tree-sha1 = "66bde31636301f4d217a161cabe42536fa754ec8"
+uuid = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
+version = "0.3.17"
+
+[[deps.Difmap]]
+deps = ["DataPipes", "ImageMagick_jll", "difmap_jll"]
+git-tree-sha1 = "f99d8afba929d2685e485c64079483f0484c4912"
+uuid = "697f6f98-b792-4bca-85fe-71b3d053de65"
+version = "0.1.15"
 
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -424,6 +729,12 @@ git-tree-sha1 = "e6033823834ec0070125120d4d4a1234f1826a47"
 uuid = "525bcba6-941b-5504-bd06-fd0dc1a4d2eb"
 version = "0.16.12"
 
+[[deps.FileIO]]
+deps = ["Pkg", "Requires", "UUIDs"]
+git-tree-sha1 = "67551df041955cc6ee2ed098718c8fcd7fc7aebe"
+uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+version = "1.12.0"
+
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
@@ -432,6 +743,22 @@ deps = ["Statistics"]
 git-tree-sha1 = "335bfdceacc84c5cdf16aadc768aa5ddfc5383cc"
 uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.4"
+
+[[deps.FlameGraphs]]
+deps = ["AbstractTrees", "Colors", "FileIO", "FixedPointNumbers", "IndirectArrays", "LeftChildRightSiblingTrees", "Profile"]
+git-tree-sha1 = "01c053d887dc6a530a3f1e90b22fc552aae178f2"
+uuid = "08572546-2f56-4bcf-ba4e-bab62c3a3f89"
+version = "0.2.9"
+
+[[deps.Future]]
+deps = ["Random"]
+uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
+
+[[deps.Ghostscript_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "78e2c69783c9753a91cdae88a8d432be85a2ab5e"
+uuid = "61579ee1-b43e-5ca0-a5da-69d92c66a64b"
+version = "9.55.0+0"
 
 [[deps.Hyperscript]]
 deps = ["Test"]
@@ -455,13 +782,29 @@ git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
 uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 version = "0.1.1"
 
+[[deps.ImageMagick_jll]]
+deps = ["Artifacts", "Ghostscript_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pkg", "Zlib_jll", "libpng_jll"]
+git-tree-sha1 = "f025b79883f361fa1bd80ad132773161d231fd9f"
+uuid = "c73af94c-d91f-53ed-93a7-00f77d67a9d7"
+version = "6.9.12+2"
+
+[[deps.Indexing]]
+git-tree-sha1 = "ce1566720fd6b19ff3411404d4b977acd4814f9f"
+uuid = "313cdc1a-70c2-5d6a-ae34-0150d3930a38"
+version = "1.1.1"
+
+[[deps.IndirectArrays]]
+git-tree-sha1 = "012e604e1c7458645cb8b436f8fba789a51b257f"
+uuid = "9b13fd28-a010-5f03-acff-a1bbcff69959"
+version = "1.0.0"
+
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[deps.InterferometricModels]]
-deps = ["IntervalSets", "LinearAlgebra", "StaticArrays", "Unitful", "UnitfulAstro"]
-path = "../../home/aplavin/.julia/dev/InterferometricModels.jl"
+deps = ["Accessors", "IntervalSets", "LinearAlgebra", "StaticArrays", "Unitful", "UnitfulAstro"]
+path = "../../home/aplavin/.julia/dev/InterferometricModels"
 uuid = "b395d269-c2ec-4df6-b679-36919ad600ca"
 version = "0.1.0"
 
@@ -504,6 +847,12 @@ git-tree-sha1 = "8076680b162ada2a031f707ac7b4953e30667a37"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.2"
 
+[[deps.JpegTurbo_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "d735490ac75c5cb9f1b00d8b5509c11984dc6943"
+uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
+version = "2.1.0+0"
+
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 git-tree-sha1 = "3cbe45f4871e60fc142154252322bcf9638c2c1d"
@@ -520,6 +869,12 @@ deps = ["LinearAlgebra", "NamedDims", "OffsetArrays", "Test", "ZygoteRules"]
 git-tree-sha1 = "a8bf67afad3f1ee59d367267adb7c44ccac7fdee"
 uuid = "1fad7336-0346-5a1a-a56f-a06ba010965b"
 version = "0.0.7"
+
+[[deps.LeftChildRightSiblingTrees]]
+deps = ["AbstractTrees"]
+git-tree-sha1 = "b864cb409e8e445688bc478ef87c0afe4f6d1f8d"
+uuid = "1d6d02ad-be62-4b6b-8a6d-2f90e265016e"
+version = "0.1.3"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -539,6 +894,30 @@ uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+
+[[deps.Libgcrypt_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgpg_error_jll", "Pkg"]
+git-tree-sha1 = "64613c82a59c120435c067c2b809fc61cf5166ae"
+uuid = "d4300ac3-e22c-5743-9152-c294e39db1e4"
+version = "1.8.7+0"
+
+[[deps.Libgpg_error_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "c333716e46366857753e273ce6a69ee0945a6db9"
+uuid = "7add5ba3-2f88-524e-9cd5-f83b8a55f7b8"
+version = "1.42.0+0"
+
+[[deps.Libiconv_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "42b62845d70a619f063a7da093d995ec8e15e778"
+uuid = "94ce4f54-9a6c-5748-9c1c-f9c7231a4531"
+version = "1.16.1+1"
+
+[[deps.Libtiff_jll]]
+deps = ["Artifacts", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Pkg", "Zlib_jll", "Zstd_jll"]
+git-tree-sha1 = "340e257aada13f95f98ee352d316c3bed37c8ab9"
+uuid = "89763e89-9b03-5906-acba-b20f662cd828"
+version = "4.3.0+0"
 
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "libblastrampoline_jll"]
@@ -597,6 +976,12 @@ git-tree-sha1 = "af6febbfede908c04e19bed954350ac687d892b2"
 uuid = "356022a1-0364-5f58-8944-0da4b18d706f"
 version = "0.2.45"
 
+[[deps.Ncurses_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "e3fb71f3c971fdc8523f9ef3906691124f3048a2"
+uuid = "68e3532b-a499-55ff-9963-d1c0c0748b3a"
+version = "6.2.0+0"
+
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
@@ -615,11 +1000,11 @@ git-tree-sha1 = "85f8e6578bf1f9ee0d11e7bb1b1456435479d47c"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.4.1"
 
-[[deps.Parameters]]
-deps = ["OrderedCollections", "UnPack"]
-git-tree-sha1 = "34c0e9ad262e5f7fc75b10a9952ca7692cfc5fbe"
-uuid = "d96e819e-fc66-5662-9728-84c9c7592b0a"
-version = "0.12.3"
+[[deps.PGPLOT_jll]]
+deps = ["CompilerSupportLibraries_jll", "Libdl", "Pkg"]
+git-tree-sha1 = "91bf88f8e171151bdc71e9615159f0a14339f54b"
+uuid = "b11e30b1-63be-5002-9df0-88ee0fe906ff"
+version = "5.2.0+0"
 
 [[deps.Parsers]]
 deps = ["Dates"]
@@ -657,6 +1042,12 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 deps = ["Printf"]
 uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 
+[[deps.ProfileSVG]]
+deps = ["Colors", "FlameGraphs", "Profile", "UUIDs"]
+git-tree-sha1 = "e4df82a5dadc26736f106f8d7fc97c42cc6c91ae"
+uuid = "132c30aa-f267-4189-9183-c8a63c7e05e6"
+version = "0.2.1"
+
 [[deps.PyCall]]
 deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
 git-tree-sha1 = "71fd4022ecd0c6d20180e23ff1b3e05a143959c2"
@@ -670,10 +1061,10 @@ uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 version = "2.10.0"
 
 [[deps.PyPlotUtils]]
-deps = ["AxisKeys", "DomainSets", "IntervalSets", "OffsetArrays", "PyCall", "PyPlot", "StatsBase", "Unitful"]
-git-tree-sha1 = "92b6cb3d131d20ed9c59804ecc3aee2b7a1c03be"
+deps = ["AxisKeys", "Colors", "DomainSets", "IntervalSets", "OffsetArrays", "PyCall", "PyPlot", "StatsBase", "Unitful"]
+git-tree-sha1 = "e1bb1b4ef65e5134121170e14b8cf3f9f232db25"
 uuid = "5384e752-6c47-47b3-86ac-9d091b110b31"
-version = "0.1.2"
+version = "0.1.3"
 
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
@@ -729,11 +1120,17 @@ version = "1.0.1"
 deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
+[[deps.SplitApplyCombine]]
+deps = ["Dictionaries", "Indexing"]
+git-tree-sha1 = "35efd62f6f8d9142052d9c7a84e35cd1f9d2db29"
+uuid = "03a91e81-4c3e-53e1-a0a4-9c0c8f19dd66"
+version = "1.2.1"
+
 [[deps.Static]]
 deps = ["IfElse"]
-git-tree-sha1 = "b4912cd034cdf968e06ca5f943bb54b17b97793a"
+git-tree-sha1 = "7f5a513baec6f122401abfc8e9c074fdac54f6c1"
 uuid = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
-version = "0.5.1"
+version = "0.4.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
@@ -789,11 +1186,6 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
-[[deps.UnPack]]
-git-tree-sha1 = "387c1f73762231e86e0c9c5443ce3b4a0a9a0c2b"
-uuid = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
-version = "1.0.2"
-
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
@@ -816,19 +1208,73 @@ uuid = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 version = "1.1.1"
 
 [[deps.VLBIData]]
-deps = ["AxisKeys", "Dates", "DelimitedFiles", "FITSIO", "MyUnitful", "Parameters", "PyCall", "StaticArrays", "StatsBase", "Tables", "Unitful", "UnitfulAstro"]
-git-tree-sha1 = "7ab790c800c883b24a832304900cc1b1d3e3b2de"
+deps = ["AxisKeys", "DataPipes", "DateFormats", "Dates", "DelimitedFiles", "FITSIO", "InterferometricModels", "MyUnitful", "PyCall", "Reexport", "StaticArrays", "Tables", "Unitful", "UnitfulAstro"]
+git-tree-sha1 = "7348d20170c2943a9e71facfa8dda57b82368035"
 uuid = "679fc9cc-3e84-11e9-251b-cbd013bd8115"
-version = "0.2.5"
+version = "0.3.1"
 
 [[deps.VersionParsing]]
 git-tree-sha1 = "e575cf85535c7c3292b4d89d89cc29e8c3098e47"
 uuid = "81def892-9a0e-5fdd-b105-ffc91e053289"
 version = "1.2.1"
 
+[[deps.XML2_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "Zlib_jll"]
+git-tree-sha1 = "1acf5bdf07aa0907e0a37d3718bb88d4b687b74a"
+uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
+version = "2.9.12+0"
+
+[[deps.XSLT_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "Pkg", "XML2_jll", "Zlib_jll"]
+git-tree-sha1 = "91844873c4085240b95e795f692c4cec4d805f8a"
+uuid = "aed1982a-8fda-507f-9586-7b0439959a61"
+version = "1.1.34+0"
+
+[[deps.Xorg_libX11_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_libxcb_jll", "Xorg_xtrans_jll"]
+git-tree-sha1 = "5be649d550f3f4b95308bf0183b82e2582876527"
+uuid = "4f6342f7-b3d2-589e-9d20-edeb45f2b2bc"
+version = "1.6.9+4"
+
+[[deps.Xorg_libXau_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "4e490d5c960c314f33885790ed410ff3a94ce67e"
+uuid = "0c0b7dd1-d40b-584c-a123-a41640f87eec"
+version = "1.0.9+4"
+
+[[deps.Xorg_libXdmcp_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "4fe47bd2247248125c428978740e18a681372dd4"
+uuid = "a3789734-cfe1-5b06-b2d0-1dd0d9d62d05"
+version = "1.1.3+4"
+
+[[deps.Xorg_libpthread_stubs_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "6783737e45d3c59a4a4c4091f5f88cdcf0908cbb"
+uuid = "14d82f49-176c-5ed1-bb49-ad3f5cbd8c74"
+version = "0.1.0+3"
+
+[[deps.Xorg_libxcb_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "XSLT_jll", "Xorg_libXau_jll", "Xorg_libXdmcp_jll", "Xorg_libpthread_stubs_jll"]
+git-tree-sha1 = "daf17f441228e7a3833846cd048892861cff16d6"
+uuid = "c7cfdc94-dc32-55de-ac96-5a1b8d977c5b"
+version = "1.13.0+3"
+
+[[deps.Xorg_xtrans_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "79c31e7844f6ecf779705fbc12146eb190b7d845"
+uuid = "c5fb5394-a638-5e4d-96e5-b29de1b5cf10"
+version = "1.4.0+3"
+
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+
+[[deps.Zstd_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "cc4bf3fdde8b7e3e9fa0351bdeedba1cf3b7f6e6"
+uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
+version = "1.5.0+0"
 
 [[deps.ZygoteRules]]
 deps = ["MacroTools"]
@@ -836,9 +1282,21 @@ git-tree-sha1 = "8c1a8e4dfacb1fd631745552c8db35d0deb09ea0"
 uuid = "700de1a5-db45-46bc-99cf-38207098b444"
 version = "0.2.2"
 
+[[deps.difmap_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Ncurses_jll", "PGPLOT_jll", "Pkg", "Xorg_libX11_jll"]
+git-tree-sha1 = "2c9d61ab9189941639096a9f3dd3396da0d32652"
+uuid = "43cd2700-e54a-5645-adf8-b9b288a87fe6"
+version = "2.5.11+0"
+
 [[deps.libblastrampoline_jll]]
 deps = ["Artifacts", "Libdl", "OpenBLAS_jll"]
 uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+
+[[deps.libpng_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Zlib_jll"]
+git-tree-sha1 = "94d180a6d2b5e55e447e2d27a29ed04fe79eb30c"
+uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
+version = "1.6.38+0"
 
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -857,8 +1315,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═6980bc53-5338-4e1f-a214-66c49b7602e8
 # ╠═e396f1b3-e22a-4e65-b4ac-c4cdd5886c31
 # ╠═b61061c6-cbeb-40d4-a09b-5884238a0093
-# ╠═2cfff674-9c4a-4270-ba29-8ed9fd570693
-# ╠═8cb483c3-6c86-4a3c-b509-7323709190a3
+# ╠═fd8d2a74-38a3-405f-81ee-ededc6c71772
 # ╠═dc475ee0-f5c5-43af-8891-60e4bf834241
 # ╠═1a09ed55-4cf7-43ea-a421-e1d6da45e1c1
 # ╠═39678544-01fe-43f8-a032-2ba30cc97a43
@@ -866,13 +1323,51 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═5bd256aa-02b7-44d2-a45a-2e874f50e110
 # ╠═b475d137-58da-49d5-9fc3-3a91becd29dd
 # ╟─dcee4f99-f016-4d93-8a91-ffcde40a5259
-# ╠═bd39f02d-1a60-4b20-a13c-b59f23f99518
 # ╟─821409d1-18da-4116-9c11-3730a1ab5c32
 # ╟─c83145f0-7eb0-446f-bc3e-74f9abf5c041
 # ╠═845dc0fc-d649-4442-aef6-953f0ffb1ecc
 # ╠═e82945d2-ee22-4e02-98a8-49965f3a73ee
 # ╠═a0dd1000-ebe1-4fac-83af-475ccc1508a3
 # ╠═42b78efb-3309-4493-982a-2eaed495e9b2
+# ╠═2e00e1fe-1c23-40d1-bf8a-15551d6445db
+# ╠═b849ea9e-f703-4d5e-ac43-d0c220869f48
+# ╠═4bb211bf-cf8f-465a-a61c-97194a27454a
+# ╟─8d84c703-bcf7-4d44-897f-bd3834930811
+# ╠═63b0dfb7-3800-44c5-962c-3e005420e993
+# ╠═b80db8e3-3753-45d4-a09d-834e1ab1e1f7
+# ╠═1fb59094-dd9f-479a-a62c-f65a04f40371
+# ╠═94453978-9f72-47d0-9ebd-22d13e8ddbe5
+# ╟─e66c25f5-8f39-474d-86eb-1e518f5760f0
+# ╟─cc90ab80-cf2c-4927-9c56-06f683d8f40b
+# ╠═ee546c1c-39c8-421d-8ff2-cf135eb0cb10
+# ╠═d6d4260f-9627-4560-b25a-81b5318d8f57
+# ╠═67a0c491-2d7a-4dda-af57-8412fdb6c04a
+# ╠═354ebf8d-d4f4-487d-bb24-d6715e07d81b
+# ╠═e50d7eb7-a958-4d90-8a5a-b00bbdc958b7
+# ╠═3c1637e7-44dc-495c-acab-4c0dbb6bd26c
+# ╠═4c25ce58-0138-4ae5-ab5b-2f591ca20a55
+# ╠═2345c32d-3db7-42f6-a5ff-a85db528a41c
+# ╠═c75ac04d-633a-4313-aa30-ee1c9e68e2ba
+# ╠═d61f3d23-3c58-4f0b-a46b-96d48b7c168a
+# ╠═855e8bc6-c620-4b37-b04f-c23bc0cdfcd5
+# ╠═b7cde253-8c16-4a0b-9256-619976f2bf08
+# ╠═a7cf79e9-e9aa-4daf-8cc0-6e7eb4b64ddc
+# ╠═8cdd9b3f-fbb6-4969-91d5-86487b0a5fcb
+# ╠═2c6f044e-70d7-41e0-a2f4-e4d72fd6c13b
+# ╠═b41c6a65-7e67-4389-9e2c-20f10504ef91
+# ╠═728e1356-e1f0-408f-9875-e68a52c7f78a
+# ╠═73aa0405-1aab-4321-9c32-9c098c2b8772
+# ╠═ca9641ba-ca23-4fd2-83a6-b31612a24d09
+# ╠═11065b35-d474-4844-af33-4a175881e89e
+# ╠═093ca09d-c09f-48c0-8477-e3cd9c6f9bc9
+# ╠═4ef03d45-cb2f-4aa5-9edc-0e9dbeed22dc
+# ╠═3de9053c-fbf9-4462-ad9c-a45ffca79e6b
+# ╠═12c99ec0-3b30-4bd2-bc75-70075c844a7a
+# ╠═fee5e403-7e44-47e2-bf63-13dea839e029
+# ╠═95883f17-4ccc-4de7-bd29-094e3a8ccb88
+# ╠═541dae20-5a32-452c-b8bf-91854e0aaee1
+# ╠═637f8e59-cb27-4929-a127-7beece3059be
+# ╠═145be160-2b29-4bc1-9a27-4493d787512b
 # ╠═b1614a63-ab6f-43de-9b85-25144e3dd4a5
 # ╠═f0970c02-75a1-4e14-8173-7d78cdff4fa9
 # ╠═690a88de-95b6-43f5-a616-251f733a00ec
