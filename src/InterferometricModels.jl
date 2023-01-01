@@ -13,5 +13,6 @@ export
 
 include("utils.jl")
 include("models.jl")
+include("from_vec.jl")
 
 end
