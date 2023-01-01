@@ -80,14 +80,20 @@ end
     ]
     for c in cs
         ccov = EllipticGaussianCovmat(c)
-        @test flux(ccov) == flux(c)
-        @test coords(ccov) == coords(c)
-        @test intensity_peak(ccov) ≈ intensity_peak(c)
+        ccov_el = EllipticGaussian(ccov)
+        @test flux(ccov_el) == flux(ccov) == flux(c)
+        @test coords(ccov_el) == coords(ccov) == coords(c)
+        @test intensity_peak(ccov_el) ≈ intensity_peak(ccov) ≈ intensity_peak(c)
         xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
-        @test intensity(ccov).(xs) ≈ intensity(c).(xs)
-        @test visibility.(ccov, xs) ≈ visibility.(c, xs)
+        @test intensity(ccov_el).(xs) ≈ intensity(ccov).(xs) ≈ intensity(c).(xs)
+        @test visibility.(ccov_el, xs) ≈ visibility.(ccov, xs) ≈ visibility.(c, xs)
         @test visibility.(abs, ccov, xs) ≈ visibility.(abs, c, xs)
         @test visibility.(angle, ccov, xs) ≈ visibility.(angle, c, xs)
+
+        el = EllipticGaussian(c)
+        @test ccov_el.σ_major ≈ el.σ_major
+        @test ccov_el.ratio_minor_major ≈ el.ratio_minor_major
+        @test ccov_el.pa_major ≈ el.pa_major
     end
 end
 

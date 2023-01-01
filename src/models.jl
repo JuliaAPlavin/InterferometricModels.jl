@@ -45,6 +45,9 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
     coords::SVector{2, TC}
 end
 
+EllipticGaussian(c::EllipticGaussian) = c
+EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1, 0, c.coords)
+
 fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
 fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
 fwhm_average(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * √(c.ratio_minor_major))  # geometric average
@@ -52,22 +55,33 @@ effective_area(c::EllipticGaussian) = 2π * c.σ_major^2 * c.ratio_minor_major
 position_angle(c::EllipticGaussian) = c.pa_major
 
 
-Base.@kwdef struct EllipticGaussianCovmat{TF,TC,TM,TMI} <: ModelComponent
+Base.@kwdef struct EllipticGaussianCovmat{TF,TC,TM} <: ModelComponent
     flux::TF
     covmat::TM
-    invcovmat::TMI
     coords::SVector{2, TC}
 end
 
-effective_area(c::EllipticGaussianCovmat) = 2π * sqrt(1/det(c.covmat))
+effective_area(c::EllipticGaussianCovmat) = 2π * sqrt(det(c.covmat))
 
-EllipticGaussianCovmat(c::CircularGaussian) = EllipticGaussianCovmat(; c.flux, covmat=Diagonal(SVector(1, 1) ./ c.σ^2), invcovmat=Diagonal(SVector(1, 1) .* c.σ^2), c.coords)
+EllipticGaussianCovmat(c::EllipticGaussianCovmat) = c
+EllipticGaussianCovmat(c::CircularGaussian) = EllipticGaussianCovmat(; c.flux, covmat=Diagonal(SVector(1, 1) .* c.σ^2), c.coords)
 EllipticGaussianCovmat(c::EllipticGaussian) = let
     si, co = sincos(position_angle(c))
-    σs_inv = 1 ./ (c.σ_major .* SVector(c.ratio_minor_major, 1))
-    trmat = Diagonal(σs_inv) * @SMatrix([co -si; si co])
-    covmat = trmat' * trmat
-    EllipticGaussianCovmat(; c.flux, covmat, invcovmat=inv(covmat), c.coords)
+    σs = c.σ_major .* SVector(c.ratio_minor_major, 1)
+    trmat = @SMatrix([co si; -si co]) * Diagonal(σs)
+    covmat = trmat * trmat'
+    EllipticGaussianCovmat(; c.flux, covmat, c.coords)
+end
+
+function EllipticGaussian(c::EllipticGaussianCovmat)
+	E = eigen(c.covmat)
+	vec = E.vectors[:, 2]
+	EllipticGaussian(;
+		c.flux, c.coords,
+		σ_major=√(E.values[2]),
+		ratio_minor_major=√(E.values[1] / E.values[2]),
+		pa_major=atan(vec[1], vec[2]),
+	)
 end
 
 
@@ -93,9 +107,10 @@ end
 intensity(c::EllipticGaussian) = intensity(EllipticGaussianCovmat(c))
 function intensity(c::EllipticGaussianCovmat)
     peak = intensity_peak(c)
+    invcovmat = inv(c.covmat)
     (xy::XYType) -> let
         Δxy = xy - c.coords
-        peak * exp(-1/2 * dot(Δxy, c.covmat, Δxy))
+        peak * exp(-1/2 * dot(Δxy, invcovmat, Δxy))
     end
 end
 function intensity(m::MultiComponentModel)
@@ -111,7 +126,7 @@ end
 visibility(::typeof(abs), c::Point, uv::UVType) = c.flux
 visibility(::typeof(abs), c::CircularGaussian, uv::UVType) = c.flux * exp(-2π^2 * c.σ^2 * dot(uv, uv))
 visibility(::typeof(abs), c::EllipticGaussian, uv::UVType) = visibility(abs, EllipticGaussianCovmat(c), uv)
-visibility(::typeof(abs), c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, c.invcovmat, uv))
+visibility(::typeof(abs), c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, c.covmat, uv))
 
 visibility(c, uv::UVType) = visibility(c)(uv)
 visibility(c::Point) = @inline (uv::UVType) -> flux(c) * cis(visibility(angle, c, uv))
@@ -120,7 +135,7 @@ function visibility(c::CircularGaussian)
     @inline (uv::UVType) -> flux(c) * exp(mul * dot(uv, uv)) * cis(visibility(angle, c, uv))
 end
 visibility(c::EllipticGaussian) = visibility(EllipticGaussianCovmat(c))
-visibility(c::EllipticGaussianCovmat) = @inline uv::UVType -> flux(c) * exp(-2π^2 * dot(uv, c.invcovmat * uv)) * cis(visibility(angle, c, uv))
+visibility(c::EllipticGaussianCovmat) = @inline uv::UVType -> flux(c) * exp(-2π^2 * dot(uv, c.covmat * uv)) * cis(visibility(angle, c, uv))
 function visibility(m::MultiComponentModel)
     bycomp = components(m) .|> visibility
     @inline (xy::UVType) -> sum(f -> f(xy), bycomp)
