@@ -101,6 +101,7 @@ end
     xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
     @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
     @test visibility.(m, xs) ≈ 2 .* visibility.(c1, xs) .+ visibility.(c2, xs)
+    @test flux(m) == 4.5
 end
 
 @testset "convolve beam" begin

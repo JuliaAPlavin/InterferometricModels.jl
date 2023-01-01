@@ -78,6 +78,7 @@ end
 Base.broadcastable(c::MultiComponentModel) = Ref(c)
 components(m::MultiComponentModel) = m.components
 
+flux(m::MultiComponentModel) = sum(flux, components(m))
 
 intensity_peak(c::Point) = flux(c) / effective_area(c)
 intensity_peak(c::CircularGaussian) = flux(c) / effective_area(c)
