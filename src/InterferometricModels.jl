@@ -3,14 +3,17 @@ module InterferometricModels
 using Unitful, UnitfulAstro
 using IntervalSets
 using StaticArrays
-using LinearAlgebra: det, dot, Diagonal
+using LinearAlgebra
+using Accessors
 
 export
     ModelComponent, Point, CircularGaussian, EllipticGaussian, EllipticGaussianCovmat,
     MultiComponentModel, components,
-    flux, coords, Tb_peak, fwhm_max, fwhm_average, fwhm_min, effective_area, intensity_peak, intensity, position_angle,
-    visibility, visibility_amplitude, visibility_phase, visibility_envelope,
-    convolve, beam
+    flux, coords, Tb_peak, fwhm_max, fwhm_average, fwhm_min, effective_area, position_angle,
+    intensity_peak, intensity,
+    visibility, visibility_envelope,
+    convolve, beam,
+    ustrip
 
 include("utils.jl")
 include("models.jl")
