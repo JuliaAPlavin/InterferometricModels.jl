@@ -70,10 +70,26 @@ import VLBIData as VLBI
         @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
     end
 
-    @testset "convolve" begin
+    @testset "convolve beam" begin
         c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
         cc = convolve(c, beam(CircularGaussian, σ=0.5))
         @test cc isa CircularGaussian
+        @test coords(cc) ≈ SVector(1, 2)
+        @test 1.4 < intensity_peak(cc) < 1.5
+
+        cc = convolve(c, beam(EllipticGaussian, σ_major=1., ratio_minor_major=0.5, pa_major=0.))
+        @test cc isa EllipticGaussianCovmat
+        @test coords(cc) ≈ SVector(1, 2)
+        @test 1.4 < intensity_peak(cc) < 1.5
+
+        c = EllipticGaussian(flux=1.5, σ_major=0.1, ratio_minor_major=0.7, pa_major=0.123, coords=SVector(1., 2.))
+        cc = convolve(c, beam(CircularGaussian, σ=0.5))
+        @test cc isa EllipticGaussianCovmat
+        @test coords(cc) ≈ SVector(1, 2)
+        @test 1.4 < intensity_peak(cc) < 1.5
+
+        cc = convolve(c, beam(EllipticGaussian, σ_major=1., ratio_minor_major=0.5, pa_major=0.))
+        @test cc isa EllipticGaussianCovmat
         @test coords(cc) ≈ SVector(1, 2)
         @test 1.4 < intensity_peak(cc) < 1.5
     end
