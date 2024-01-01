@@ -17,6 +17,11 @@ using TestItemRunner
     @test visibility(c, SVector(0, 0)) == flux(c)
     @test visibility(c, SVector(-1.23, 4.56)) ≈ flux(c) * cis(angle(0.01415 - 0.01170im))  rtol=1e-3
     @test visibility(abs, c, SVector(-1.23, 4.56)) == flux(c)
+    
+    @test visibility.(c, [SVector(0, 0)]) |> only == flux(c)
+    @test visibility.(c, [SVector(-1.23, 4.56)]) |> only ≈ flux(c) * cis(angle(0.01415 - 0.01170im))  rtol=1e-3
+    @test visibility.(abs, c, [SVector(-1.23, 4.56)]) |> only == flux(c)
+
     @test mod2pi(visibility(angle, c, SVector(-1.23, 4.56))) ≈ mod2pi(angle(0.01415 - 0.01170im))  rtol=1e-4
 end
 

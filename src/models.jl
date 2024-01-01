@@ -132,7 +132,7 @@ visibility(::typeof(abs), c::CircularGaussian, uv::UVType) = c.flux * exp(-2π^2
 visibility(::typeof(abs), c::EllipticGaussian, uv::UVType) = visibility(abs, EllipticGaussianCovmat(c), uv)
 visibility(::typeof(abs), c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, c.covmat, uv))
 
-visibility(c, uv::UVType) = visibility(c)(uv)
+visibility(c::Union{ModelComponent,MultiComponentModel}, uv::UVType) = visibility(c)(uv)
 visibility(c::Point) = @inline (uv::UVType) -> flux(c) * cis(visibility(angle, c, uv))
 function visibility(c::CircularGaussian)
     mul = -2π^2 * c.σ^2
@@ -148,6 +148,10 @@ end
 visibility_envelope(::typeof(abs), c::Point, uvdist::Real) = c.flux ± eps(c.flux)
 visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± eps(c.flux)
 visibility_envelope(::typeof(abs), c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
+
+
+visibility(f::Function, args...; kwargs...) = f(visibility(args...; kwargs...))
+Broadcast.broadcasted(::typeof(visibility), f::Function, args...; kwargs...) = f.(visibility.(args...; kwargs...))
 
 
 Unitful.ustrip(x::ModelComponent) = @modify(x -> ustrip.(x), x |> Properties())
