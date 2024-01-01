@@ -247,7 +247,7 @@ end
             (func, tgt) in [
                 intensity_peak => 1u"Jy/mas^2",
                 @optic(Tb_peak(_, 5u"GHz")) => 1e11u"K",
-                Base.Fix2(Base.Fix1(visibility, abs), SVector(1e8, 0)) => 0.5u"Jy",
+                @optic(visibility(abs, _, SVector(1e8, 0))) => 0.5u"Jy",
             ]
         co = modifying(o)(func)
         c_upd = set(c, co, tgt)

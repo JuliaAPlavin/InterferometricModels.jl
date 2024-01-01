@@ -16,7 +16,7 @@ UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 
 [compat]
 Accessors = "0.1.8"
-AccessorsExtra = "0.1.39"
+AccessorsExtra = "0.1.40"
 Aqua = "0.5.2, 0.6"
 CompatHelperLocal = "0.1"
 IntervalSets = "0.5.3, 0.6, 0.7"
