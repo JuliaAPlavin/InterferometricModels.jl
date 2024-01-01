@@ -9,8 +9,8 @@ Base.broadcastable(c::ModelComponent) = Ref(c)
 position_angle((c_from, c_to)::Pair{<:ModelComponent, <:ModelComponent}) = atan( (coords(c_to) - coords(c_from))... )
 separation(c_from::ModelComponent, c_to::ModelComponent) = hypot( (coords(c_from) - coords(c_to))... )
 
-flux(c::ModelComponent) = c.flux
-coords(c::ModelComponent) = c.coords
+@accessor flux(c::ModelComponent) = c.flux
+@accessor coords(c::ModelComponent) = c.coords
 Tb_peak(c::ModelComponent, ν) = intensity_to_Tb(intensity_peak(c), ν)
 
 
@@ -31,10 +31,10 @@ Base.@kwdef struct CircularGaussian{TF,TS,TC} <: ModelComponent
     coords::SVector{2, TC}
 end
 
-fwhm_max(c::CircularGaussian) = fwhm_average(c)
-fwhm_min(c::CircularGaussian) = fwhm_average(c)
-fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
-effective_area(c::CircularGaussian) = 2π * c.σ^2
+@accessor fwhm_max(c::CircularGaussian) = fwhm_average(c)
+@accessor fwhm_min(c::CircularGaussian) = fwhm_average(c)
+@accessor fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
+@accessor effective_area(c::CircularGaussian) = 2π * c.σ^2
 
 
 Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
@@ -52,7 +52,9 @@ fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
 fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
 fwhm_average(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * √(c.ratio_minor_major))  # geometric average
 effective_area(c::EllipticGaussian) = 2π * c.σ_major^2 * c.ratio_minor_major
-position_angle(c::EllipticGaussian) = c.pa_major
+@accessor position_angle(c::EllipticGaussian) = c.pa_major
+Accessors.set(c::EllipticGaussian, ::typeof(fwhm_max), val) = setproperties(c, (σ_major = fwhm_to_σ(val), ratio_minor_major=c.σ_major/fwhm_to_σ(val) * c.ratio_minor_major))
+Accessors.set(c::EllipticGaussian, ::typeof(fwhm_min), val) = @set c.ratio_minor_major = fwhm_to_σ(val) / c.σ_major
 
 
 Base.@kwdef struct EllipticGaussianCovmat{TF,TC,TM} <: ModelComponent
@@ -90,7 +92,7 @@ Base.@kwdef struct MultiComponentModel{TUP}
 end
 
 Base.broadcastable(c::MultiComponentModel) = Ref(c)
-components(m::MultiComponentModel) = m.components
+@accessor components(m::MultiComponentModel) = m.components
 
 Base.:(==)(a::MultiComponentModel, b::MultiComponentModel) = components(a) == components(b)
 

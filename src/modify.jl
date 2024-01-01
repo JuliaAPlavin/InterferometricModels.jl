@@ -3,14 +3,6 @@
 (f::Base.Fix1)(args...) = f.f(f.x, args...)
 (f::Base.Fix2)(y, args...) = f.f(y, f.x, args...)
 
-
-Accessors.set(c::ModelComponent, ::typeof(flux), val) = @set c.flux = val
-Accessors.set(c::ModelComponent, ::typeof(coords), val) = @set c.coords = val
-Accessors.set(c::CircularGaussian, ::Union{typeof(fwhm_max), typeof(fwhm_min), typeof(fwhm_average)}, val) = @set c.σ = fwhm_to_σ(val)
-Accessors.set(c::EllipticGaussian, ::typeof(fwhm_max), val) = setproperties(c, (σ_major = fwhm_to_σ(val), ratio_minor_major=c.σ_major/fwhm_to_σ(val) * c.ratio_minor_major))
-Accessors.set(c::EllipticGaussian, ::typeof(fwhm_min), val) = @set c.ratio_minor_major = fwhm_to_σ(val) / c.σ_major
-Accessors.set(c::MultiComponentModel, ::typeof(components), val) = @set c.components = val
-
 """    set_so_that(x, optic, func => target_val)
 
 Set `optic` in `x` so that `func(new_x) == target_val`.
