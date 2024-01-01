@@ -195,6 +195,24 @@ end
     end
 end
 
+@testitem "utils" begin
+    using Accessors
+    using Accessors.InverseFunctions
+    using Unitful
+    using UnitfulAstro
+    using UnitfulAngles
+
+    @test InterferometricModels.σ_to_fwhm(0.1) ≈ 0.23548200450309495
+    InverseFunctions.test_inverse(InterferometricModels.σ_to_fwhm, 0.1)
+    InverseFunctions.test_inverse(InterferometricModels.σ_to_fwhm, 0.1u"m")
+    
+    f = @optic(InterferometricModels.intensity_to_Tb(_, 5u"GHz"))
+    @test f(0.1u"Jy/mas^2") ≈ 5.539089534545945e9u"K"
+    @test f(0.1) ≈ 5.539089534545945e9
+    InverseFunctions.test_inverse(f, 0.1u"Jy/mas^2")
+    InverseFunctions.test_inverse(f, 0.1)
+end
+
 @testitem "ustrip" begin
     using StaticArrays
     using Unitful, UnitfulAstro
