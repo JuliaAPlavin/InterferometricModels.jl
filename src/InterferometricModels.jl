@@ -13,8 +13,7 @@ export
     intensity_peak, intensity,
     visibility, visibility_envelope,
     convolve, beam,
-    ustrip,
-    set_so_that
+    ustrip
 
 include("utils.jl")
 include("models.jl")
