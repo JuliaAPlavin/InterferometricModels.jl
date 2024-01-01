@@ -1,14 +1,10 @@
-using Test
-using InterferometricModels
-using Unitful, UnitfulAstro, UnitfulAngles
-using StaticArrays
-using LinearAlgebra
-using RectiGrids
-using IntervalSets
-using Accessors
+using TestItems
+using TestItemRunner
+@run_package_tests
 
+@testitem "point" begin
+    using StaticArrays
 
-@testset "point" begin
     c = Point(flux=1.5, coords=SVector(1., 2.))
     @test c ≈ Point(flux=1.5f0 * 1.00001f0, coords=SVector(1f0, 2f0) * 1.00001f0)
     @test !(c ≈ Point(flux=1.6, coords=SVector(1f0, 2f0)))
@@ -24,7 +20,10 @@ using Accessors
     @test mod2pi(visibility(angle, c, SVector(-1.23, 4.56))) ≈ mod2pi(angle(0.01415 - 0.01170im))  rtol=1e-4
 end
 
-@testset "circular" begin
+@testitem "circular" begin
+    using StaticArrays
+    using RectiGrids
+
     c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
     @test c ≈ CircularGaussian(flux=1.5f0 * 1.00001f0, σ=0.1f0 * 1.00001f0, coords=SVector(1f0, 2f0))
     @test !(c ≈ CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1.3, 2.)))
@@ -50,7 +49,11 @@ end
     @test SVector(map((a, i) -> a[i], axiskeys(img), Tuple(argmax(img)))) ≈ SVector(1, 2)  atol=0.03
 end
 
-@testset "elliptical" begin
+@testitem "elliptical" begin
+    using StaticArrays
+    using RectiGrids
+    using LinearAlgebra: normalize
+
     c = EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
     @test c ≈ EllipticGaussian(flux=1.5f0 * 1.00001f0, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
     @test !(c ≈ EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.9), coords=SVector(1., 2.)))
@@ -79,7 +82,9 @@ end
     @test SVector(map((a, i) -> a[i], axiskeys(img), Tuple(argmax(img)))) ≈ SVector(1, 2)  atol=0.03
 end
 
-@testset "elliptical covmat" begin
+@testitem "elliptical covmat" begin
+    using StaticArrays
+
     cs = [
         CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.)),
         EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
@@ -103,7 +108,10 @@ end
     end
 end
 
-@testset "multicomponent" begin
+@testitem "multicomponent" begin
+    using StaticArrays
+    using Accessors
+
     c1 = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
     c2 = EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(0.5, -0.1))
     @test position_angle(c1 => c2) ≈ -2.907849472720892
@@ -123,7 +131,9 @@ end
     @test deepcopy(m) == m
 end
 
-@testset "convolve beam" begin
+@testitem "convolve beam" begin
+    using StaticArrays
+
     c = Point(flux=1.5, coords=SVector(1., 2.))
     cc = convolve(c, beam(CircularGaussian, σ=0.5))
     @test cc isa CircularGaussian
@@ -163,7 +173,10 @@ end
     @test only(components(cm)) == convolve(c, beam(CircularGaussian, σ=0.5))
 end
 
-@testset "envelopes" begin
+@testitem "envelopes" begin
+    using StaticArrays
+    using LinearAlgebra: norm
+
     cs = [
         Point(flux=1.5, coords=SVector(1., 2.)),
         CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.)),
@@ -177,7 +190,11 @@ end
     end
 end
 
-@testset "ustrip" begin
+@testitem "ustrip" begin
+    using StaticArrays
+    using Unitful, UnitfulAstro
+    using IntervalSets
+
     c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
     cu = CircularGaussian(flux=1.5u"Jy", σ=0.1u"°", coords=SVector(1., 2.)*u"°")
     @test ustrip(c) == c
@@ -191,7 +208,11 @@ end
     @test ustrip(u"cm", 1u"m"..2u"m") == 100..200
 end
 
-@testset "set" begin
+@testitem "set" begin
+    using StaticArrays
+    using Unitful, UnitfulAstro, UnitfulAngles
+    using Accessors
+
     c = Point(flux=1.5u"Jy", coords=SVector(1., 2.)u"mas")
     @test flux(@set(flux(c) = 2u"Jy")) == 2u"Jy"
     @test coords(@set(coords(c) = SVector(-10, 0.5)u"mas")) == SVector(-10, 0.5)u"mas"
@@ -212,7 +233,11 @@ end
     @test coords(@set(coords(c) = SVector(-10, 0.5)u"mas")) == SVector(-10, 0.5)u"mas"
 end
 
-@testset "set so that" begin
+@testitem "set so that" begin
+    using StaticArrays
+    using Unitful, UnitfulAstro, UnitfulAngles
+    using Accessors
+
     c = CircularGaussian(flux=1.0u"Jy", σ=0.1u"mas", coords=SVector(0, 0.)u"mas")
     @testset "$o $func" for
             (o, o_other) in [
@@ -247,10 +272,11 @@ end
 end
 
 
-import CompatHelperLocal as CHL
-CHL.@check()
-import Aqua
-@testset "Aqua" begin
+@testitem "_" begin
+    import CompatHelperLocal as CHL
+    import Aqua
+
+    CHL.@check()
     Aqua.test_ambiguities(InterferometricModels, recursive=false)
     Aqua.test_unbound_args(InterferometricModels)
     Aqua.test_undefined_exports(InterferometricModels)
