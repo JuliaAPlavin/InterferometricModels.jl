@@ -20,6 +20,5 @@ include("utils.jl")
 include("models.jl")
 include("convolve.jl")
 include("modify.jl")
-include("from_vec.jl")
 
 end
