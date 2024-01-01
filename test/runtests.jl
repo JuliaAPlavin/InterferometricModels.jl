@@ -236,7 +236,7 @@ end
 @testitem "set so that" begin
     using StaticArrays
     using Unitful, UnitfulAstro, UnitfulAngles
-    using Accessors
+    using AccessorsExtra
 
     c = CircularGaussian(flux=1.0u"Jy", σ=0.1u"mas", coords=SVector(0, 0.)u"mas")
     @testset "$o $func" for
@@ -249,7 +249,8 @@ end
                 @optic(Tb_peak(_, 5u"GHz")) => 1e11u"K",
                 Base.Fix2(Base.Fix1(visibility, abs), SVector(1e8, 0)) => 0.5u"Jy",
             ]
-        c_upd = set_so_that(c, o, func => tgt)
+        co = modifying(o)(func)
+        c_upd = set(c, co, tgt)
         @test coords(c_upd) == coords(c)
         @test o_other(c_upd) == o_other(c)
         @test o(c_upd) != o(c)
@@ -263,7 +264,8 @@ end
                 fwhm_average => 10u"mas",
                 effective_area => 10u"mas^2",
             ]
-        c_upd = set_so_that(c, o, func => tgt)
+        co = modifying(o)(func)
+        c_upd = set(c, co, tgt)
         @test coords(c_upd) == coords(c)
         @test o_other(c_upd) == o_other(c)
         @test o(c_upd) != o(c)

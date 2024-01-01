@@ -3,51 +3,43 @@
 (f::Base.Fix1)(args...) = f.f(f.x, args...)
 (f::Base.Fix2)(y, args...) = f.f(y, f.x, args...)
 
-"""    set_so_that(x, optic, func => target_val)
+using AccessorsExtra: ConstrainedLens
+import Accessors: set
 
-Set `optic` in `x` so that `func(new_x) == target_val`.
-"""
-set_so_that(x, o, (func, val)::Pair) = set_so_that(x, o, func, val)
-
-function set_so_that(
-        c::CircularGaussian, o::Accessors.PropertyLens{:σ},
-        f::Union{typeof(fwhm_max), typeof(fwhm_min), typeof(fwhm_average)},
-        val)
-    ratio = convert(Real, val / f(c))
-    set(c, o, o(c) * ratio)
+function set(c::CircularGaussian,
+             co::ConstrainedLens{<:Union{typeof(fwhm_max), typeof(fwhm_min), typeof(fwhm_average)}, PropertyLens{:σ}},
+             val)
+    ratio = convert(Real, val / co(c))
+    set(c, co.mo, co.mo(c) * ratio)
 end
 
-function set_so_that(
-        c::CircularGaussian, o::Accessors.PropertyLens{:σ},
-        f::Union{typeof(effective_area)},
-        val)
-    ratio = convert(Real, val / f(c))
-    set(c, o, o(c) * √ratio)
+function set(c::CircularGaussian,
+             co::ConstrainedLens{typeof(effective_area), PropertyLens{:σ}},
+             val)
+    ratio = convert(Real, val / co(c))
+    set(c, co.mo, co.mo(c) * √ratio)
 end
 
-function set_so_that(
-        c::CircularGaussian, o::Accessors.PropertyLens{:σ},
-        f::Union{typeof(intensity_peak), Base.Fix2{typeof(Tb_peak)}},
-        val)
-    ratio = convert(Real, val / f(c))
-    set(c, o, o(c) / √(ratio))
+function set(c::CircularGaussian,
+             co::ConstrainedLens{<:Union{typeof(intensity_peak), Base.Fix2{typeof(Tb_peak)}}, PropertyLens{:σ}},
+             val)
+    ratio = convert(Real, val / co(c))
+    set(c, co.mo, co.mo(c) / √ratio)
 end
 
-function set_so_that(
-        c::CircularGaussian, o::Accessors.PropertyLens{:flux},
-        f::Union{typeof(intensity_peak), Base.Fix2{typeof(Tb_peak)}, Base.Fix2{Base.Fix1{typeof(visibility), typeof(abs)}}},
-        val)
-    ratio = convert(Real, val / f(c))
-    set(c, o, o(c) * ratio)
+function set(c::CircularGaussian,
+             co::ConstrainedLens{<:Union{typeof(intensity_peak), Base.Fix2{typeof(Tb_peak)}, Base.Fix2{Base.Fix1{typeof(visibility), typeof(abs)}}}, PropertyLens{:flux}},
+             val)
+    ratio = convert(Real, val / co(c))
+    set(c, co.mo, co.mo(c) * ratio)
 end
 
-function set_so_that(
-        c::CircularGaussian, o::Accessors.PropertyLens{:σ},
-        f::Base.Fix2{Base.Fix1{typeof(visibility), typeof(abs)}},
-        val)
-    uv = f.x
+function set(c::CircularGaussian,
+             co::ConstrainedLens{<:Base.Fix2{Base.Fix1{typeof(visibility), typeof(abs)}}, PropertyLens{:σ}},
+             val)
+    uv = co.o.x
     T = typeof(c.σ)
     val > flux(c) && error("Cannot make visibility higher than total flux")
     newval = √( log(val / c.flux) / (-2π^2 * dot(uv, uv)) )
-    @set c.σ = convert(T, newval)
+    set(c, co.mo, convert(T, newval))
 end
