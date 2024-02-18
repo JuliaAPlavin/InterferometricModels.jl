@@ -41,8 +41,7 @@ function convolve(c::EllipticGaussianCovmat, b::EllipticGaussianCovmat)
     @assert coords(b) == SVector(0, 0)
     return EllipticGaussianCovmat(
         flux=flux(c) * flux(b),
-        covmat=inv(c.invcovmat + b.invcovmat),
-        invcovmat=c.invcovmat + b.invcovmat,
+        covmat=c.covmat + b.covmat,
         coords=coords(c),
     )
 end
