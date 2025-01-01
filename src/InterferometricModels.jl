@@ -17,7 +17,6 @@ export
 
 include("utils.jl")
 include("models.jl")
-include("images.jl")
 include("convolve.jl")
 include("modify.jl")
 

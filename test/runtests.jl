@@ -181,6 +181,8 @@ end
 @testitem "envelopes" begin
     using StaticArrays
     using LinearAlgebra: norm
+    using Unitful
+    using IntervalSets
 
     cs = [
         Point(flux=1.5, coords=SVector(1., 2.)),
@@ -192,6 +194,9 @@ end
     @testset for c in cs, x in xs
         @test visibility(abs, c, x) ∈ visibility_envelope(abs, c, norm(x))
         @test mod2pi(visibility(angle, c, x)+π)-π ∈ visibility_envelope(angle, c, norm(x))
+        @test mod(visibility(rad2deg∘angle, c, x)+180, 0..360)-180 ∈ visibility_envelope(rad2deg∘angle, c, norm(x))
+        @test mod2pi(visibility(u"rad"∘angle, c, x)+π)-π ∈ visibility_envelope(u"rad"∘angle, c, norm(x))
+        @test mod(visibility(u"°"∘angle, c, x)+180, 0..360)-180 ∈ visibility_envelope(u"°"∘angle, c, norm(x))
     end
 end
 
@@ -297,79 +302,12 @@ end
 end
 
 
-@testitem "images" begin
-    using InterferometricModels.AxisKeys
-    using InterferometricModels.LinearAlgebra
-    using StaticArrays
-    using Unitful, UnitfulAngles
-
-    pmod = MultiComponentModel([
-        Point(flux=1, coords=SVector(0., 0.)u"mas"),
-        Point(flux=0.5, coords=SVector(1., 2.)u"mas"),
-    ])
-
-    img = KeyedArray(zeros(8, 8), ra=(-4:3)u"mas", dec=(-4:3)u"mas")
-    for p in components(pmod)
-        img[Key(coords(p)[1]), Key(coords(p)[2])] = flux(p)
-    end
-
-    uv = [
-        SVector(0, 0),
-        SVector(1e6, 0),
-        SVector(0, 1e6),
-        SVector(1e7, 0),
-        SVector(3e7, -4e7),
-    ]
-    visop = ImageVisibilityOperator(complex.(img), uv)
-
-    vis_img = visop * complex.(img)
-    vis_pmod = visibility.(Ref(pmod), uv)
-
-    @test abs.(vis_img) ≈ abs.(vis_pmod)  rtol=1e-4
-    @test vis_img ≈ vis_pmod  rtol=1e-4
-
-    # ensure that it's actually adjoint
-    img_r = copy(img)
-    img_r .= rand(Float64, size(img_r))
-    vis_r = rand(ComplexF64, length(uv))
-    @test dot(visop * complex.(img_r), vis_r) ≈ dot(vec(complex.(img_r)), vec(visop' * vis_r))  rtol=1e-4
-
-    @test_throws AssertionError ImageVisibilityOperator(complex.(KeyedArray(zeros(16, 8), ra=(-4:0.5:3.5)u"mas", dec=(-4:3)u"mas")), uv)
-    @test_throws AssertionError ImageVisibilityOperator(complex.(KeyedArray(zeros(8, 8), ra=(-2:0.5:1.5)u"mas", dec=(-4:3)u"mas")), uv)
-    @testset for ra in [(-4:3)u"mas", (-8:7)u"mas", (4:-1:-3)u"mas", (3:-1:-4)u"mas", (-1:6)u"mas", (1:-1:0)u"mas"]
-        img = KeyedArray(zeros(length(ra), 8), ra=ra, dec=(-4:3)u"mas")
-        for p in components(pmod)
-            img[Key(coords(p)[1]), Key(coords(p)[2])] = flux(p)
-        end
-        visop = ImageVisibilityOperator(complex.(img), uv)
-        vis_img = visop * complex.(img)
-        @test abs.(vis_img) ≈ abs.(vis_pmod)  rtol=1e-4
-        @test vis_img ≈ vis_pmod  rtol=1e-4
-        
-        img_r = copy(img)
-        img_r .= rand(Float64, size(img_r))
-        vis_r = rand(ComplexF64, length(uv))
-        @test dot(visop * complex.(img_r), vis_r) ≈ dot(vec(complex.(img_r)), vec(visop' * vis_r))  rtol=1e-4
-    end
-
-    # check inplace
-    largeimg = KeyedArray(rand(ComplexF64, (1024, 1024)), ra=(-512:511)u"mas", dec=(-512:511)u"mas")
-    largeuv = rand(SVector{2}, 8*1024)
-    largevis = zeros(ComplexF64, length(largeuv))
-    largeop = ImageVisibilityOperator(largeimg, largeuv)
-    @inferred mul!(largevis, largeop, largeimg)
-    @inferred mul!(largeimg, largeop', largevis)
-    @test (@allocated mul!(largevis, largeop, largeimg)) < 300
-    @test (@allocated mul!(largeimg, largeop', largevis)) < 300
-end
-
-
 @testitem "_" begin
     import CompatHelperLocal as CHL
     import Aqua
 
     CHL.@check()
-    # Aqua.test_ambiguities(InterferometricModels, recursive=false)
+    Aqua.test_ambiguities(InterferometricModels, recursive=false)
     Aqua.test_unbound_args(InterferometricModels)
     Aqua.test_undefined_exports(InterferometricModels)
     Aqua.test_stale_deps(InterferometricModels)
