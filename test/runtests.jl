@@ -28,6 +28,7 @@ end
 @testitem "circular" begin
     using StaticArrays
     using RectiGrids
+    using AccessorsExtra: construct, test_construct_laws
 
     c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
     @test c ≈ CircularGaussian(flux=1.5f0 * 1.00001f0, σ=0.1f0 * 1.00001f0, coords=SVector(1f0, 2f0))
@@ -52,12 +53,17 @@ end
     @test sum(img) * (20 / 2000)^2 ≈ 1.5  rtol=1e-3
     @test 0.99 <= maximum(img) / intensity_peak(c) <= 1
     @test SVector(map((a, i) -> a[i], axiskeys(img), Tuple(argmax(img)))) ≈ SVector(1, 2)  atol=0.03
+
+    @test construct(CircularGaussian, flux=>2.5, fwhm_average=>0.2, coords=>SVector(1, 2)) ≈
+          CircularGaussian(flux=2.5, σ=InterferometricModels.fwhm_to_σ(0.2), coords=SVector(1, 2))
+    test_construct_laws(CircularGaussian, flux=>2.5, fwhm_average=>0.2, coords=>SVector(1, 2))
 end
 
 @testitem "elliptical" begin
     using StaticArrays
     using RectiGrids
     using LinearAlgebra: normalize
+    using AccessorsExtra: construct, test_construct_laws
 
     c = EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
     @test c ≈ EllipticGaussian(flux=1.5f0 * 1.00001f0, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
@@ -87,6 +93,10 @@ end
     @test sum(img) * (20 / 2000)^2 ≈ 1.5  rtol=1e-3
     @test 0.99 <= maximum(img) / intensity_peak(c) <= 1
     @test SVector(map((a, i) -> a[i], axiskeys(img), Tuple(argmax(img)))) ≈ SVector(1, 2)  atol=0.03
+
+    @test construct(EllipticGaussian, flux=>2.5, fwhm_max=>0.2, fwhm_min=>0.1, position_angle=>-0.5, coords=>SVector(1, 2)) ≈
+          EllipticGaussian(flux=2.5, σ_major=InterferometricModels.fwhm_to_σ(0.2), ratio_minor_major=0.5, pa_major=-0.5, coords=SVector(1, 2))
+    test_construct_laws(EllipticGaussian, flux=>2.5, fwhm_max=>0.2, fwhm_min=>0.1, position_angle=>-0.5, coords=>SVector(1, 2))
 end
 
 @testitem "elliptical covmat" begin

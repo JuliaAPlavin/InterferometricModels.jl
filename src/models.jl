@@ -181,3 +181,17 @@ Base.isapprox(a::ModelComponent, b::ModelComponent; kwargs...) =
     propertynames(a) == propertynames(b) && all(k -> isapprox(getproperty(a, k), getproperty(b, k); kwargs...), propertynames(a))
 Base.isapprox(a::MultiComponentModel, b::MultiComponentModel; kwargs...) =
     length(components(a)) == length(components(b)) && all(((x, y),) -> isapprox(x, y; kwargs...), zip(components(a), components(b)))
+
+
+import AccessorsExtra
+
+AccessorsExtra.construct(::Type{Point}, (_,flux)::Pair{typeof(flux)}, (_,coords)::Pair{typeof(coords)}) =
+    Point(; flux, coords=SVector{2}(coords))
+AccessorsExtra.construct(::Type{CircularGaussian}, (_,flux)::Pair{typeof(flux)}, (_,σ)::Pair{PropertyLens{:σ}}, (_,coords)::Pair{typeof(coords)}) =
+    CircularGaussian(; flux, σ=σ, coords=SVector{2}(coords))
+AccessorsExtra.construct(::Type{CircularGaussian}, (_,flux)::Pair{typeof(flux)}, (_,fwhm)::Pair{typeof(fwhm_average)}, (_,coords)::Pair{typeof(coords)}) =
+    CircularGaussian(; flux, σ=fwhm_to_σ(fwhm), coords=SVector{2}(coords))
+AccessorsExtra.construct(::Type{EllipticGaussian}, (_,flux)::Pair{typeof(flux)}, (_,fwhm_max)::Pair{typeof(fwhm_max)}, (_,ratio)::Pair{PropertyLens{:ratio_minor_major}}, (_,pa)::Pair{typeof(position_angle)}, (_,coords)::Pair{typeof(coords)}) =
+    EllipticGaussian(; flux, σ_major=fwhm_to_σ(fwhm_max), ratio_minor_major=ratio, pa_major=pa, coords=SVector{2}(coords))
+AccessorsExtra.construct(::Type{EllipticGaussian}, (_,flux)::Pair{typeof(flux)}, (_,fwhm_max)::Pair{typeof(fwhm_max)}, (_,fwhm_min)::Pair{typeof(fwhm_min)}, (_,pa)::Pair{typeof(position_angle)}, (_,coords)::Pair{typeof(coords)}) =
+    EllipticGaussian(; flux, σ_major=fwhm_to_σ(fwhm_max), ratio_minor_major=fwhm_min/fwhm_max, pa_major=pa, coords=SVector{2}(coords))
