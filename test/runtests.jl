@@ -194,6 +194,9 @@ end
         EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.)),
         MultiComponentModel((
             CircularGaussian(1, 0.1, SVector(0, 0)),
+        )),
+        MultiComponentModel((
+            CircularGaussian(1, 0.1, SVector(0, 0)),
             CircularGaussian(1, 0.15, SVector(0.7, 0)),
         )),
 

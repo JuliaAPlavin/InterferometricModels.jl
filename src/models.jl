@@ -154,10 +154,12 @@ function visibility(m::MultiComponentModel)
     @inline (xy::UVType) -> sum(f -> f(xy), bycomp)
 end
 
-visibility_envelope(::typeof(abs), c::Point, uvdist::Real) = c.flux ± eps(c.flux)
-visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± eps(c.flux)
+visibility_envelope(::typeof(abs), c::Point, uvdist::Real) = c.flux ± eps(float(c.flux))
+visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± eps(float(c.flux))
 visibility_envelope(::typeof(abs), c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
 
+visibility_envelope(f::typeof(abs), m::MultiComponentModel{<:Tuple{Any}}, uvdist::Real) = visibility_envelope(f, only(components(m)), uvdist)
+visibility_envelope(f::typeof(angle), m::MultiComponentModel{<:Tuple{Any}}, uvdist::Real) = visibility_envelope(f, only(components(m)), uvdist)
 
 visibility(f::Function, args...; kwargs...) = f(visibility(args...; kwargs...))
 Broadcast.broadcasted(::typeof(visibility), f::Function, args...; kwargs...) = f.(visibility.(args...; kwargs...))
