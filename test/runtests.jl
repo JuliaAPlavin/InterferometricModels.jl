@@ -338,6 +338,74 @@ end
     end
 end
 
+@testitem "measurements" begin
+    import MonteCarloMeasurements as MCM
+    import UncertaintiesNaive as U
+    using StaticArrays
+    using Unitful
+
+    uv = SVector(1.0, 0.1)
+    uvu = SVector(U.measurement(1.0, 0.1), U.measurement(0.1, 0.01))
+    uvmcm = SVector(MCM.:(±)(1.0, 0.1), MCM.:(±)(0.1, 0.01))
+
+    c = CircularGaussian(flux=U.measurement(1.0, 0.1), σ=0.1, coords=SVector(0, 0))
+    e = EllipticGaussian(c)
+    ec = EllipticGaussianCovmat(c)
+    @test fwhm_max(c) == fwhm_min(c) == fwhm_average(c) == 0.23548200450309495
+    @test visibility(c, uv) == U.measurement(0.8192499856641148 + 0.0im, 0.08192499856641149)
+    @test visibility(e, uv) == visibility(c, uv)
+    @test visibility(ec, uv) == visibility(c, uv)
+    visibility(c, uvu)
+    visibility(c, uvmcm)
+
+    c = CircularGaussian(flux=U.measurement(1.0, 0.1), σ=U.measurement(0.1, 0.01), coords=SVector(0, 0))
+    e = EllipticGaussian(c)
+    ec = EllipticGaussianCovmat(c)
+    @test fwhm_max(c) == fwhm_min(c) == fwhm_average(c) == U.measurement(0.23548200450309495, 0.023548200450309493)
+    @test visibility(c, uv) == U.measurement(0.8192499856641148 + 0.0im, 0.08819739670256731)
+    @test visibility(e, uv) == U.measurement(0.8192499856641148 + 0.0im, 0.08505752517953284)
+    @test visibility(ec, uv) == U.measurement(0.8192499856641148 + 0.0im, 0.0880787135988441)
+    visibility(c, uvu)
+    visibility(c, uvmcm)
+
+    c = CircularGaussian(flux=MCM.:(±)(1.0, 0.1), σ=0.1, coords=SVector(0, 0))
+    e = EllipticGaussian(c)
+    ec = EllipticGaussianCovmat(c)
+    @test fwhm_max(c) == fwhm_min(c) == fwhm_average(c) == 0.23548200450309495
+    # @test visibility(c, uv)
+    @test visibility(e, uv) == visibility(c, uv)
+    @test visibility(ec, uv) == visibility(c, uv)
+    visibility(c, uvu)
+    visibility(c, uvmcm)
+    # @test visibility(c, uvmcm)
+
+    c = CircularGaussian(flux=MCM.:(±)(1.0, 0.1), σ=MCM.:(±)(0.1, 0.01), coords=SVector(0, 0))
+    e = EllipticGaussian(c)
+    ec = EllipticGaussianCovmat(c)
+    @test fwhm_max(c) == fwhm_min(c) == fwhm_average(c) ≈ MCM.:(±)(0.23548200450309495, 0.023548200450309493)
+    # @test visibility(c, uv) == MCM.:(±)(0.8192499856641148 + 0.0im, 0.08819739670256731)
+    @test visibility(e, uv) ≈ visibility(c, uv)
+    @test visibility(ec, uv) ≈ visibility(c, uv)
+    visibility(c, uvu)
+    visibility(c, uvmcm)
+
+    e = EllipticGaussian(flux=U.measurement(1.0, 0.1), σ_major=U.measurement(0.1, 0.01), ratio_minor_major=U.measurement(0.5, 0.05), pa_major=U.measurement(0.1, 0.01), coords=SVector(0, 0))
+    ec = EllipticGaussianCovmat(e)
+    @test visibility(ec, uv) ≈ visibility(e, uv) rtol=1e-3
+
+    e = EllipticGaussian(flux=1.0, σ_major=MCM.:(±)(0.1, 0.01)u"°", ratio_minor_major=MCM.:(±)(0.5, 0.05), pa_major=MCM.:(±)(0.1, 0.01), coords=SVector(0, 0)u"°")
+    ec = EllipticGaussianCovmat(e)
+    @test visibility(ec, uv) ≈ visibility(e, uv)
+
+    e = EllipticGaussian(flux=MCM.:(±)(1.0, 0.1), σ_major=MCM.:(±)(0.1, 0.01), ratio_minor_major=MCM.:(±)(0.5, 0.05), pa_major=MCM.:(±)(0.1, 0.01), coords=SVector(0, 0))
+    ec = EllipticGaussianCovmat(e)
+    @test visibility(ec, uv) ≈ visibility(e, uv)
+
+    e = EllipticGaussian(flux=MCM.:(±)(1.0, 0.1), σ_major=MCM.:(±)(0.1, 0.01), ratio_minor_major=MCM.:(±)(0.5, 0.05), pa_major=MCM.:(±)(0.1, 0.01), coords=SVector(MCM.:(±)(0, 0.1), MCM.:(±)(0, 0.1)))
+    ec = EllipticGaussianCovmat(e)
+    @test visibility(ec, uv) ≈ visibility(e, uv)
+end
+
 
 @testitem "_" begin
     import CompatHelperLocal as CHL
