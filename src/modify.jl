@@ -29,3 +29,5 @@ function set(c::CircularGaussian,
     newval = √( log(val / c.flux) / (-2π^2 * dot(uv, uv)) )
     set(c, co.mo, convert(T, newval))
 end
+
+set(c::EllipticGaussian, ::ConstrainedLens{typeof(fwhm_max),PropertyLens{:σ_major}}, v) = @set c.σ_major = InterferometricModels.fwhm_to_σ(v)
