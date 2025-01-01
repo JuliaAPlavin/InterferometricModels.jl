@@ -183,11 +183,16 @@ end
     using LinearAlgebra: norm
     using Unitful
     using IntervalSets
+    import IntervalArithmetic
 
     cs = [
         Point(flux=1.5, coords=SVector(1., 2.)),
         CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.)),
         EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.)),
+        MultiComponentModel((
+            CircularGaussian(1, 0.1, SVector(0, 0)),
+            CircularGaussian(1, 0.15, SVector(0.7, 0)),
+        )),
     ]
     # append!(cs, EllipticGaussianCovmat.(cs[2:end]))
     xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]

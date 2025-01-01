@@ -126,7 +126,7 @@ end
 # default definitions: work for all symmetric components
 @inline visibility(::typeof(angle), c::ModelComponent, uv::UVType) = 2π * dot(uv, coords(c))
 @inline visibility_envelope(::typeof(angle), c::ModelComponent, uvdist::Real) = 0 ± 2π * min(norm(coords(c)) * uvdist, 0.5)
-@inline visibility_envelope(f::ComposedFunction{<:Any, typeof(angle)}, c::ModelComponent, uvdist::Real) =
+@inline visibility_envelope(f::ComposedFunction{<:Any, typeof(angle)}, c, uvdist::Real) =
     @modify(visibility_envelope(angle, c, uvdist) |> endpoints |> _[∗]) do x
         # XXX: assuming f is monotonic wrt angle
         f.outer(x)
