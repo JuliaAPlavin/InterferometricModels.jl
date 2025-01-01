@@ -67,6 +67,9 @@ end
 
     c = EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
     @test c ≈ EllipticGaussian(flux=1.5f0 * 1.00001f0, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
+    @test c ≈ EllipticGaussian(flux=1.5f0, σ_major=0.5f0, ratio_minor_major=0.5f0, pa_major=Float32(deg2rad(16.6992f0)), coords=SVector(1f0, 2f0))
+    @test c ≈ EllipticGaussian(flux=1.5f0, σ_major=0.25f0, ratio_minor_major=2f0, pa_major=deg2rad(-90+16.6992f0), coords=SVector(1f0, 2f0))
+    @test c ≈ EllipticGaussian(flux=1.5, σ_major=0.25f0, ratio_minor_major=2f0, pa_major=deg2rad(-90+16.6992f0), coords=SVector(1, 2))
     @test !(c ≈ EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.9), coords=SVector(1., 2.)))
 
     @test intensity_peak(c) ≈ 1.5 / (2π*0.5*0.25)
