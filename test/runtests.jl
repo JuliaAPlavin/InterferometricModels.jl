@@ -111,12 +111,15 @@ end
 
 @testitem "elliptical covmat" begin
     using StaticArrays
+    using Unitful
 
     cs = [
         CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.)),
-        EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
+        EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.)),
+        EllipticGaussian(flux=1.5, σ_major=0.5u"rad", ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.)u"rad"),
+        EllipticGaussian(flux=1.5, σ_major=0.5u"rad", ratio_minor_major=0.5, pa_major=16.6992u"°", coords=SVector(1., 2.)u"rad")
     ]
-    for c in cs
+    @testset for c in cs
         ccov = EllipticGaussianCovmat(c)
         ccov_el = EllipticGaussian(ccov)
         @test flux(ccov_el) == flux(ccov) == flux(c)
