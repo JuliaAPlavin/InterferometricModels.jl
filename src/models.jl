@@ -18,6 +18,8 @@ Base.@kwdef struct Point{TF,TC} <: ModelComponent
     flux::TF
     coords::SVector{2, TC}
 end
+@batteries Point
+Point(flux, coords) = Point(flux, SVector{2}(coords))
 
 fwhm_max(c::Point) = fwhm_average(c)
 fwhm_min(c::Point) = fwhm_average(c)
@@ -30,6 +32,8 @@ Base.@kwdef struct CircularGaussian{TF,TS,TC} <: ModelComponent
     σ::TS
     coords::SVector{2, TC}
 end
+@batteries CircularGaussian
+CircularGaussian(flux, σ, coords) = CircularGaussian(flux, σ, SVector{2}(coords))
 
 @accessor fwhm_max(c::CircularGaussian) = fwhm_average(c)
 @accessor fwhm_min(c::CircularGaussian) = fwhm_average(c)
@@ -53,8 +57,7 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,TR,TP} <: ModelComponent
         new{typeof(flux),typeof(σ_major),eltype(coords),typeof(ratio_minor_major),typeof(pa_major)}(flux, σ_major, ratio_minor_major, pa_major, coords)
     end
 end
-
-EllipticGaussian(c::EllipticGaussian) = c
+@batteries EllipticGaussian
 EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1., 0., c.coords)
 
 fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)

@@ -8,6 +8,7 @@ using DataPipes
 using AccessorsExtra
 import AccessorsExtra: set, construct
 using AccessorsExtra.InverseFunctions: square
+using StructHelpers
 
 export
     ModelComponent, Point, CircularGaussian, EllipticGaussian, EllipticGaussianCovmat,
