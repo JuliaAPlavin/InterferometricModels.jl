@@ -301,6 +301,10 @@ end
             CircularGaussian(1u"W", 0.1u"rad", SVector(0, 0)u"rad"),
             CircularGaussian(1u"W", 0.15u"rad", SVector(0.7, 0)u"rad"),
         )),
+        MultiComponentModel((
+            CircularGaussian(1, 0.1u"°", SVector(0, 0)u"°"),
+            CircularGaussian(1, 0.15u"°", SVector(0.7, 0)u"°"),
+        )),
     ]
     append!(cs, EllipticGaussianCovmat.(cs[2:3]))
 
