@@ -42,3 +42,5 @@ normalize_as_beam(c::ModelComponent) = @p let
     @set __.coords = SVector(zero(eltype(__.coords)), zero(eltype(__.coords)))
     set(__, modifying(@o _.flux)(intensity_peak), 1)
 end
+
+Unitful.ustrip(x::Beam) = @modify(ustrip, x.comp)

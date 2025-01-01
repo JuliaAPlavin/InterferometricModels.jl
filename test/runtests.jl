@@ -219,6 +219,9 @@ end
 
     b = Beam(EllipticGaussian, σ_major=0.5, ratio_minor_major=0.5, pa_major=0.123)
     @test b == construct(Beam{EllipticGaussian}, fwhm_max => InterferometricModels.σ_to_fwhm(0.5), (@o _.ratio_minor_major) => 0.5, position_angle => 0.123)
+    
+    @test ustrip(b) == Beam(EllipticGaussian, σ_major=0.5, ratio_minor_major=0.5, pa_major=0.123)
+    @test ustrip(Beam(EllipticGaussian, σ_major=0.5u"mas", ratio_minor_major=0.5, pa_major=0.123u"rad")) == Beam(EllipticGaussian, σ_major=0.5, ratio_minor_major=0.5, pa_major=0.123)
 
     for f in ((@o _.σ), fwhm_average, fwhm_max, fwhm_min)
         test_construct_laws(Beam{CircularGaussian}, f => 0.5, type=Beam{<:CircularGaussian})
