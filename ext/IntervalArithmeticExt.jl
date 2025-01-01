@@ -24,20 +24,16 @@ InterferometricModels.visibility_envelope(::typeof(abs), model, uvdist::Real; ma
         θ -> visibility(abs, model, uvdist * SVector(sincos(θ))) |> ustrip,
         IA.interval(0, π);
         maxdepth, atol, rtol
-    ) |> _Interval |> i->_mul(i, unit(flux(model)))
+    ) |> Interval |> i->_mul(i, unit(flux(model)))
 
 InterferometricModels.visibility_envelope(::typeof(angle), model, uvdist::Real; maxdepth=10, atol=1e-6, rtol=1e-3) =
     enclose(
         θ -> visibility(angle, model, uvdist * SVector(sincos(θ))),
         IA.interval(0, 2π);
         maxdepth, atol, rtol
-    ) |> _Interval
-
-
-# XXX: should be an extension in IntervalArithmetic
-_Interval(i::IA.Interval) = Interval(IA.inf(i), IA.sup(i))
+    ) |> Interval
 
 # XXX
-_mul(x::Interval, u) = Interval((endpoints(ustrip(x)) .* u)...)
+_mul(x::Interval, u) = Interval((endpoints(x) .* u)...)
 
 end
