@@ -183,6 +183,29 @@ end
     @test deepcopy(m) == m
 end
 
+@testitem "beam" begin
+    using AccessorsExtra
+    using AccessorsExtra: test_construct_laws
+    using Unitful, UnitfulAngles
+
+    b = Beam(CircularGaussian, σ=0.5)
+    @test b == construct(Beam{CircularGaussian}, fwhm_average => InterferometricModels.σ_to_fwhm(0.5))
+
+    b = Beam(EllipticGaussian, σ_major=0.5, ratio_minor_major=0.5, pa_major=0.123)
+    @test b == construct(Beam{EllipticGaussian}, fwhm_max => InterferometricModels.σ_to_fwhm(0.5), (@o _.ratio_minor_major) => 0.5, position_angle => 0.123)
+
+    for f in ((@o _.σ), fwhm_average, fwhm_max, fwhm_min)
+        test_construct_laws(Beam{CircularGaussian}, f => 0.5, type=Beam{<:CircularGaussian})
+        test_construct_laws(Beam{CircularGaussian}, f => 0.5u"mas", type=Beam{<:CircularGaussian})
+    end
+    test_construct_laws(Beam{CircularGaussian}, effective_area => 0.5, cmp=(≈), type=Beam{<:CircularGaussian})
+    test_construct_laws(Beam{CircularGaussian}, effective_area => 0.5u"mas"^2, cmp=(≈), type=Beam{<:CircularGaussian})
+
+    test_construct_laws(Beam{EllipticGaussian}, fwhm_max => 0.5, (@o _.ratio_minor_major) => 0.6, position_angle => 0.123, type=Beam{<:EllipticGaussian})
+    test_construct_laws(Beam{EllipticGaussian}, fwhm_max => 0.5u"mas", (@o _.ratio_minor_major) => 0.6, position_angle => 0.123, type=Beam{<:EllipticGaussian})
+    test_construct_laws(Beam{EllipticGaussian}, fwhm_max => 0.5u"mas", fwhm_min => 0.3u"mas", position_angle => 0.123, type=Beam{<:EllipticGaussian})
+end
+
 @testitem "convolve beam" begin
     using StaticArrays
 

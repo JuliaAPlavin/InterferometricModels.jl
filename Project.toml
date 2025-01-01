@@ -1,10 +1,11 @@
 name = "InterferometricModels"
 uuid = "b395d269-c2ec-4df6-b679-36919ad600ca"
 authors = ["Alexander Plavin <alexander@plav.in>"]
-version = "0.1.18"
+version = "0.1.19"
 
 [deps]
 AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"
+DataPipes = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
@@ -18,7 +19,8 @@ IntervalArithmetic = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
 IntervalArithmeticExt = "IntervalArithmetic"
 
 [compat]
-AccessorsExtra = "0.1.76"
+AccessorsExtra = "0.1.77"
+DataPipes = "0.3.17"
 IntervalArithmetic = "0.22"
 IntervalSets = "0.7"
 LinearAlgebra = "1"

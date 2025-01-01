@@ -4,6 +4,7 @@ using Unitful, UnitfulAstro
 using IntervalSets
 using StaticArrays
 using LinearAlgebra
+using DataPipes
 using AccessorsExtra
 import AccessorsExtra: set, construct
 
@@ -13,11 +14,12 @@ export
     flux, coords, Tb_peak, fwhm_max, fwhm_average, fwhm_min, effective_area, position_angle, separation,
     intensity_peak, intensity,
     visibility, visibility_envelope,
-    convolve, beam,
+    convolve, beam, Beam,
     ustrip
 
 include("utils.jl")
 include("models.jl")
+include("beam.jl")
 include("convolve.jl")
 include("modify.jl")
 
