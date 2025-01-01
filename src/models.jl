@@ -34,7 +34,7 @@ end
 @accessor fwhm_max(c::CircularGaussian) = fwhm_average(c)
 @accessor fwhm_min(c::CircularGaussian) = fwhm_average(c)
 @accessor fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
-@accessor effective_area(c::CircularGaussian) = 2π * Accessors.InverseFunctions.square(c.σ) # XXX: c.σ^2
+@accessor effective_area(c::CircularGaussian) = 2π * c.σ^2
 
 
 Base.@kwdef struct EllipticGaussian{TF,TS,TC,TR,TP} <: ModelComponent

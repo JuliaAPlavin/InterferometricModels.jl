@@ -18,7 +18,7 @@ IntervalArithmetic = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
 IntervalArithmeticExt = "IntervalArithmetic"
 
 [compat]
-AccessorsExtra = "0.1.75"
+AccessorsExtra = "0.1.76"
 IntervalArithmetic = "0.22"
 IntervalSets = "0.7"
 LinearAlgebra = "1"
