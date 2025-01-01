@@ -37,11 +37,11 @@ end
 @accessor effective_area(c::CircularGaussian) = 2π * Accessors.InverseFunctions.square(c.σ) # XXX: c.σ^2
 
 
-Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
+Base.@kwdef struct EllipticGaussian{TF,TS,TC,TR,TP} <: ModelComponent
     flux::TF
     σ_major::TS
-    ratio_minor_major::T
-    pa_major::T
+    ratio_minor_major::TR
+    pa_major::TP
     coords::SVector{2, TC}
 
     function EllipticGaussian(flux, σ_major, ratio_minor_major, pa_major, coords)
@@ -50,7 +50,7 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
             ratio_minor_major = inv(ratio_minor_major)::typeof(ratio_minor_major)
             pa_major = (pa_major + π/oftype(pa_major, 2))::typeof(pa_major)
         end
-        new{typeof(flux),typeof(σ_major),eltype(coords),typeof(ratio_minor_major)}(flux, σ_major, ratio_minor_major, pa_major, coords)
+        new{typeof(flux),typeof(σ_major),eltype(coords),typeof(ratio_minor_major),typeof(pa_major)}(flux, σ_major, ratio_minor_major, pa_major, coords)
     end
 end
 
