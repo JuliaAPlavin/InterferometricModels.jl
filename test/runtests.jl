@@ -282,7 +282,6 @@ end
     using LinearAlgebra: norm
     using Unitful
     using IntervalSets
-    import IntervalArithmetic
 
     cs = [
         Point(flux=1.5, coords=SVector(1., 2.)),
@@ -310,9 +309,15 @@ end
 
     xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
     @testset for c in cs, x in xs
-        @test visibility(abs, c, x) ∈ visibility_envelope(abs, c, norm(x))
-        @test mod2pi(visibility(angle, c, x)+π)-π ∈ visibility_envelope(angle, c, norm(x))
-        @test mod(visibility(rad2deg∘angle, c, x)+180, 0..360)-180 ∈ visibility_envelope(rad2deg∘angle, c, norm(x))
+        ival = visibility_envelope(abs, c, norm(x))
+        @test visibility(abs, c, x) ∈ ival
+        @test minimum(ival) ≥ zero(minimum(ival))
+
+        ival = visibility_envelope(angle, c, norm(x))
+        @test rem(visibility(angle, c, x), 2π, RoundNearest) ∈ ival
+        @test minimum(ival) ≈ -maximum(ival)
+
+        @test rem(visibility(rad2deg∘angle, c, x), 360, RoundNearest) ∈ visibility_envelope(rad2deg∘angle, c, norm(x))
         @test mod2pi(visibility(u"rad"∘angle, c, x)+π)-π ∈ visibility_envelope(u"rad"∘angle, c, norm(x))
         @test mod(visibility(u"°"∘angle, c, x)+180, 0..360)-180 ∈ visibility_envelope(u"°"∘angle, c, norm(x))
     end
