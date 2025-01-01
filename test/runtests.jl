@@ -193,8 +193,15 @@ end
             CircularGaussian(1, 0.1, SVector(0, 0)),
             CircularGaussian(1, 0.15, SVector(0.7, 0)),
         )),
+
+        EllipticGaussian(flux=1.5u"W", σ_major=0.5u"rad", ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.)u"rad"),
+        MultiComponentModel((
+            CircularGaussian(1u"W", 0.1u"rad", SVector(0, 0)u"rad"),
+            CircularGaussian(1u"W", 0.15u"rad", SVector(0.7, 0)u"rad"),
+        )),
     ]
-    # append!(cs, EllipticGaussianCovmat.(cs[2:end]))
+    append!(cs, EllipticGaussianCovmat.(cs[2:3]))
+
     xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
     @testset for c in cs, x in xs
         @test visibility(abs, c, x) ∈ visibility_envelope(abs, c, norm(x))

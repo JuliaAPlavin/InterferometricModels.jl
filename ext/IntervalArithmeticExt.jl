@@ -1,7 +1,8 @@
 module IntervalArithmeticExt
 
 using InterferometricModels
-using InterferometricModels: SVector, Interval
+using InterferometricModels: ustrip, unit
+using InterferometricModels: SVector, Interval, endpoints
 import IntervalArithmetic as IA
 
 
@@ -20,10 +21,10 @@ end
 
 InterferometricModels.visibility_envelope(::typeof(abs), model, uvdist::Real; maxdepth=10, atol=1e-6, rtol=1e-3) =
 	enclose(
-		θ -> visibility(abs, model, uvdist * SVector(sincos(θ))),
+		θ -> visibility(abs, model, uvdist * SVector(sincos(θ))) |> ustrip,
 		IA.interval(0, π);
 		maxdepth, atol, rtol
-	) |> _Interval
+	) |> _Interval |> i->_mul(i, unit(flux(model)))
 
 InterferometricModels.visibility_envelope(::typeof(angle), model, uvdist::Real; maxdepth=10, atol=1e-6, rtol=1e-3) =
 	enclose(
@@ -35,5 +36,8 @@ InterferometricModels.visibility_envelope(::typeof(angle), model, uvdist::Real; 
 
 # XXX: should be an extension in IntervalArithmetic
 _Interval(i::IA.Interval) = Interval(IA.inf(i), IA.sup(i))
+
+# XXX
+_mul(x::Interval, u) = Interval((endpoints(ustrip(x)) .* u)...)
 
 end
