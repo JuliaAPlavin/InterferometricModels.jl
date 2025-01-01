@@ -32,4 +32,10 @@ function __init__()
     end
 end
 
+function _eigen(M::AbstractMatrix)
+    Mu = unit(eltype(M))
+    E_nou = eigen(ustrip(M))
+    (values=E_nou.values*Mu, vectors=E_nou.vectors)
+end
+
 end

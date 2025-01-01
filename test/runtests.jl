@@ -28,6 +28,7 @@ end
 @testitem "circular" begin
     using StaticArrays
     using RectiGrids
+    using AccessorsExtra: construct, test_construct_laws
 
     c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
     @test c ≈ CircularGaussian(flux=1.5f0 * 1.00001f0, σ=0.1f0 * 1.00001f0, coords=SVector(1f0, 2f0))
@@ -52,15 +53,23 @@ end
     @test sum(img) * (20 / 2000)^2 ≈ 1.5  rtol=1e-3
     @test 0.99 <= maximum(img) / intensity_peak(c) <= 1
     @test SVector(map((a, i) -> a[i], axiskeys(img), Tuple(argmax(img)))) ≈ SVector(1, 2)  atol=0.03
+
+    @test construct(CircularGaussian, flux=>2.5, fwhm_average=>0.2, coords=>SVector(1, 2)) ≈
+          CircularGaussian(flux=2.5, σ=InterferometricModels.fwhm_to_σ(0.2), coords=SVector(1, 2))
+    test_construct_laws(CircularGaussian, flux=>2.5, fwhm_average=>0.2, coords=>SVector(1, 2))
 end
 
 @testitem "elliptical" begin
     using StaticArrays
     using RectiGrids
     using LinearAlgebra: normalize
+    using AccessorsExtra: construct, test_construct_laws
 
     c = EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
     @test c ≈ EllipticGaussian(flux=1.5f0 * 1.00001f0, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
+    @test c ≈ EllipticGaussian(flux=1.5f0, σ_major=0.5f0, ratio_minor_major=0.5f0, pa_major=Float32(deg2rad(16.6992f0)), coords=SVector(1f0, 2f0))
+    @test c ≈ EllipticGaussian(flux=1.5f0, σ_major=0.25f0, ratio_minor_major=2f0, pa_major=deg2rad(-90+16.6992f0), coords=SVector(1f0, 2f0))
+    @test c ≈ EllipticGaussian(flux=1.5, σ_major=0.25f0, ratio_minor_major=2f0, pa_major=deg2rad(-90+16.6992f0), coords=SVector(1, 2))
     @test !(c ≈ EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.9), coords=SVector(1., 2.)))
 
     @test intensity_peak(c) ≈ 1.5 / (2π*0.5*0.25)
@@ -68,6 +77,15 @@ end
     @test fwhm_max(c) ≈ 0.5 * √(8 * log(2))
     @test fwhm_min(c) ≈ 0.25 * √(8 * log(2))
     @test fwhm_average(c) ≈ sqrt(0.5*0.25) * √(8 * log(2))
+
+    c2 = EllipticGaussian(flux=1.5, σ_major=0.25, ratio_minor_major=2.0, pa_major=deg2rad(16.6992 + 90), coords=SVector(1., 2.))
+    @test_broken EllipticGaussian(flux=1.5, σ_major=1, ratio_minor_major=2.0, pa_major=deg2rad(16.6992 + 90), coords=SVector(1., 2.))
+    @test intensity_peak(c2) ≈ intensity_peak(c)
+    @test fwhm_min(c2) ≈ fwhm_min(c)
+    @test fwhm_max(c2) ≈ fwhm_max(c)
+    @test fwhm_average(c2) ≈ fwhm_average(c)
+    @test mod(position_angle(c2), π) ≈ mod(position_angle(c), π)
+    @test EllipticGaussianCovmat(c2) ≈ EllipticGaussianCovmat(c)
     
     off = normalize(SVector(0.3, 1)) * fwhm_max(c)/2
     @test intensity(c)(SVector(1, 2) + off) ≈ 0.5 * intensity_peak(c)
@@ -85,16 +103,23 @@ end
     @test sum(img) * (20 / 2000)^2 ≈ 1.5  rtol=1e-3
     @test 0.99 <= maximum(img) / intensity_peak(c) <= 1
     @test SVector(map((a, i) -> a[i], axiskeys(img), Tuple(argmax(img)))) ≈ SVector(1, 2)  atol=0.03
+
+    @test construct(EllipticGaussian, flux=>2.5, fwhm_max=>0.2, fwhm_min=>0.1, position_angle=>-0.5, coords=>SVector(1, 2)) ≈
+          EllipticGaussian(flux=2.5, σ_major=InterferometricModels.fwhm_to_σ(0.2), ratio_minor_major=0.5, pa_major=-0.5, coords=SVector(1, 2))
+    test_construct_laws(EllipticGaussian, flux=>2.5, fwhm_max=>0.2, fwhm_min=>0.1, position_angle=>-0.5, coords=>SVector(1, 2))
 end
 
 @testitem "elliptical covmat" begin
     using StaticArrays
+    using Unitful
 
     cs = [
         CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.)),
-        EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
+        EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.)),
+        EllipticGaussian(flux=1.5, σ_major=0.5u"rad", ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.)u"rad"),
+        EllipticGaussian(flux=1.5, σ_major=0.5u"rad", ratio_minor_major=0.5, pa_major=16.6992u"°", coords=SVector(1., 2.)u"rad")
     ]
-    for c in cs
+    @testset for c in cs
         ccov = EllipticGaussianCovmat(c)
         ccov_el = EllipticGaussian(ccov)
         @test flux(ccov_el) == flux(ccov) == flux(c)
@@ -192,6 +217,9 @@ end
         Point(flux=1.5, coords=SVector(1., 2.)),
         CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.)),
         EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.)),
+        MultiComponentModel((
+            CircularGaussian(1, 0.1, SVector(0, 0)),
+        )),
         MultiComponentModel((
             CircularGaussian(1, 0.1, SVector(0, 0)),
             CircularGaussian(1, 0.15, SVector(0.7, 0)),
@@ -314,6 +342,74 @@ end
         @test o(c_upd) != o(c)
         @test func(c_upd) ≈ tgt
     end
+end
+
+@testitem "measurements" begin
+    import MonteCarloMeasurements as MCM
+    import UncertaintiesNaive as U
+    using StaticArrays
+    using Unitful
+
+    uv = SVector(1.0, 0.1)
+    uvu = SVector(U.measurement(1.0, 0.1), U.measurement(0.1, 0.01))
+    uvmcm = SVector(MCM.:(±)(1.0, 0.1), MCM.:(±)(0.1, 0.01))
+
+    c = CircularGaussian(flux=U.measurement(1.0, 0.1), σ=0.1, coords=SVector(0, 0))
+    e = EllipticGaussian(c)
+    ec = EllipticGaussianCovmat(c)
+    @test fwhm_max(c) == fwhm_min(c) == fwhm_average(c) == 0.23548200450309495
+    @test visibility(c, uv) == U.measurement(0.8192499856641148 + 0.0im, 0.08192499856641149)
+    @test visibility(e, uv) == visibility(c, uv)
+    @test visibility(ec, uv) == visibility(c, uv)
+    visibility(c, uvu)
+    visibility(c, uvmcm)
+
+    c = CircularGaussian(flux=U.measurement(1.0, 0.1), σ=U.measurement(0.1, 0.01), coords=SVector(0, 0))
+    e = EllipticGaussian(c)
+    ec = EllipticGaussianCovmat(c)
+    @test fwhm_max(c) == fwhm_min(c) == fwhm_average(c) == U.measurement(0.23548200450309495, 0.023548200450309493)
+    @test visibility(c, uv) == U.measurement(0.8192499856641148 + 0.0im, 0.08819739670256731)
+    @test visibility(e, uv) == U.measurement(0.8192499856641148 + 0.0im, 0.08505752517953284)
+    @test visibility(ec, uv) == U.measurement(0.8192499856641148 + 0.0im, 0.0880787135988441)
+    visibility(c, uvu)
+    visibility(c, uvmcm)
+
+    c = CircularGaussian(flux=MCM.:(±)(1.0, 0.1), σ=0.1, coords=SVector(0, 0))
+    e = EllipticGaussian(c)
+    ec = EllipticGaussianCovmat(c)
+    @test fwhm_max(c) == fwhm_min(c) == fwhm_average(c) == 0.23548200450309495
+    # @test visibility(c, uv)
+    @test visibility(e, uv) == visibility(c, uv)
+    @test visibility(ec, uv) == visibility(c, uv)
+    visibility(c, uvu)
+    visibility(c, uvmcm)
+    # @test visibility(c, uvmcm)
+
+    c = CircularGaussian(flux=MCM.:(±)(1.0, 0.1), σ=MCM.:(±)(0.1, 0.01), coords=SVector(0, 0))
+    e = EllipticGaussian(c)
+    ec = EllipticGaussianCovmat(c)
+    @test fwhm_max(c) == fwhm_min(c) == fwhm_average(c) ≈ MCM.:(±)(0.23548200450309495, 0.023548200450309493)
+    # @test visibility(c, uv) == MCM.:(±)(0.8192499856641148 + 0.0im, 0.08819739670256731)
+    @test visibility(e, uv) ≈ visibility(c, uv)
+    @test visibility(ec, uv) ≈ visibility(c, uv)
+    visibility(c, uvu)
+    visibility(c, uvmcm)
+
+    e = EllipticGaussian(flux=U.measurement(1.0, 0.1), σ_major=U.measurement(0.1, 0.01), ratio_minor_major=U.measurement(0.5, 0.05), pa_major=U.measurement(0.1, 0.01), coords=SVector(0, 0))
+    ec = EllipticGaussianCovmat(e)
+    @test visibility(ec, uv) ≈ visibility(e, uv) rtol=1e-3
+
+    e = EllipticGaussian(flux=1.0, σ_major=MCM.:(±)(0.1, 0.01)u"°", ratio_minor_major=MCM.:(±)(0.5, 0.05), pa_major=MCM.:(±)(0.1, 0.01), coords=SVector(0, 0)u"°")
+    ec = EllipticGaussianCovmat(e)
+    @test visibility(ec, uv) ≈ visibility(e, uv)
+
+    e = EllipticGaussian(flux=MCM.:(±)(1.0, 0.1), σ_major=MCM.:(±)(0.1, 0.01), ratio_minor_major=MCM.:(±)(0.5, 0.05), pa_major=MCM.:(±)(0.1, 0.01), coords=SVector(0, 0))
+    ec = EllipticGaussianCovmat(e)
+    @test visibility(ec, uv) ≈ visibility(e, uv)
+
+    e = EllipticGaussian(flux=MCM.:(±)(1.0, 0.1), σ_major=MCM.:(±)(0.1, 0.01), ratio_minor_major=MCM.:(±)(0.5, 0.05), pa_major=MCM.:(±)(0.1, 0.01), coords=SVector(MCM.:(±)(0, 0.1), MCM.:(±)(0, 0.1)))
+    ec = EllipticGaussianCovmat(e)
+    @test visibility(ec, uv) ≈ visibility(e, uv)
 end
 
 

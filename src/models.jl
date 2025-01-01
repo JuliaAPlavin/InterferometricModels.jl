@@ -43,6 +43,15 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
     ratio_minor_major::T
     pa_major::T
     coords::SVector{2, TC}
+
+    function EllipticGaussian(flux, σ_major, ratio_minor_major, pa_major, coords)
+        if ratio_minor_major > 1
+            σ_major = (σ_major * ratio_minor_major)::typeof(σ_major)
+            ratio_minor_major = inv(ratio_minor_major)::typeof(ratio_minor_major)
+            pa_major = (pa_major + π/oftype(pa_major, 2))::typeof(pa_major)
+        end
+        new{typeof(flux),typeof(σ_major),eltype(coords),typeof(ratio_minor_major)}(flux, σ_major, ratio_minor_major, pa_major, coords)
+    end
 end
 
 EllipticGaussian(c::EllipticGaussian) = c
@@ -63,16 +72,16 @@ Base.@kwdef struct EllipticGaussianCovmat{TF,TC,TM} <: ModelComponent
     coords::SVector{2, TC}
 end
 
-fwhm_max(c::EllipticGaussianCovmat) = √(eigen(c.covmat).values[2]) |> σ_to_fwhm
-fwhm_min(c::EllipticGaussianCovmat) = √(eigen(c.covmat).values[1]) |> σ_to_fwhm
-fwhm_average(c::EllipticGaussianCovmat) = (eigen(c.covmat).values |> prod)^0.25 |> σ_to_fwhm
+fwhm_max(c::EllipticGaussianCovmat) = √(_eigen(c.covmat).values[2]) |> σ_to_fwhm
+fwhm_min(c::EllipticGaussianCovmat) = √(_eigen(c.covmat).values[1]) |> σ_to_fwhm
+fwhm_average(c::EllipticGaussianCovmat) = (_eigen(c.covmat).values |> prod)^0.25 |> σ_to_fwhm
 
 effective_area(c::EllipticGaussianCovmat) = 2π * sqrt(det(c.covmat))
 
 EllipticGaussianCovmat(c::EllipticGaussianCovmat) = c
 EllipticGaussianCovmat(c::CircularGaussian) = EllipticGaussianCovmat(; c.flux, covmat=Diagonal(SVector(1, 1) .* c.σ^2), c.coords)
 EllipticGaussianCovmat(c::EllipticGaussian) = let
-    si, co = sincos(position_angle(c))
+    si, co = sincos(c.pa_major)
     σs = c.σ_major .* SVector(c.ratio_minor_major, 1)
     trmat = @SMatrix([co si; -si co]) * Diagonal(σs)
     covmat = trmat * trmat'
@@ -80,7 +89,7 @@ EllipticGaussianCovmat(c::EllipticGaussian) = let
 end
 
 function EllipticGaussian(c::EllipticGaussianCovmat)
-    E = eigen(c.covmat)
+    E = _eigen(c.covmat)
     vec = E.vectors[:, 2]
     EllipticGaussian(;
         c.flux, c.coords,
@@ -154,10 +163,12 @@ function visibility(m::MultiComponentModel)
     @inline (xy::UVType) -> sum(f -> f(xy), bycomp)
 end
 
-visibility_envelope(::typeof(abs), c::Point, uvdist::Real) = c.flux ± eps(c.flux)
-visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± eps(c.flux)
+visibility_envelope(::typeof(abs), c::Point, uvdist::Real) = c.flux ± eps(float(c.flux))
+visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux * exp(-2π^2 * c.σ^2 * uvdist^2) ± eps(float(c.flux))
 visibility_envelope(::typeof(abs), c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
 
+visibility_envelope(f::typeof(abs), m::MultiComponentModel{<:Tuple{Any}}, uvdist::Real) = visibility_envelope(f, only(components(m)), uvdist)
+visibility_envelope(f::typeof(angle), m::MultiComponentModel{<:Tuple{Any}}, uvdist::Real) = visibility_envelope(f, only(components(m)), uvdist)
 
 visibility(f::Function, args...; kwargs...) = f(visibility(args...; kwargs...))
 Broadcast.broadcasted(::typeof(visibility), f::Function, args...; kwargs...) = f.(visibility.(args...; kwargs...))
@@ -174,3 +185,17 @@ Base.isapprox(a::ModelComponent, b::ModelComponent; kwargs...) =
     propertynames(a) == propertynames(b) && all(k -> isapprox(getproperty(a, k), getproperty(b, k); kwargs...), propertynames(a))
 Base.isapprox(a::MultiComponentModel, b::MultiComponentModel; kwargs...) =
     length(components(a)) == length(components(b)) && all(((x, y),) -> isapprox(x, y; kwargs...), zip(components(a), components(b)))
+
+
+import AccessorsExtra
+
+AccessorsExtra.construct(::Type{Point}, (_,flux)::Pair{typeof(flux)}, (_,coords)::Pair{typeof(coords)}) =
+    Point(; flux, coords=SVector{2}(coords))
+AccessorsExtra.construct(::Type{CircularGaussian}, (_,flux)::Pair{typeof(flux)}, (_,σ)::Pair{PropertyLens{:σ}}, (_,coords)::Pair{typeof(coords)}) =
+    CircularGaussian(; flux, σ=σ, coords=SVector{2}(coords))
+AccessorsExtra.construct(::Type{CircularGaussian}, (_,flux)::Pair{typeof(flux)}, (_,fwhm)::Pair{typeof(fwhm_average)}, (_,coords)::Pair{typeof(coords)}) =
+    CircularGaussian(; flux, σ=fwhm_to_σ(fwhm), coords=SVector{2}(coords))
+AccessorsExtra.construct(::Type{EllipticGaussian}, (_,flux)::Pair{typeof(flux)}, (_,fwhm_max)::Pair{typeof(fwhm_max)}, (_,ratio)::Pair{PropertyLens{:ratio_minor_major}}, (_,pa)::Pair{typeof(position_angle)}, (_,coords)::Pair{typeof(coords)}) =
+    EllipticGaussian(; flux, σ_major=fwhm_to_σ(fwhm_max), ratio_minor_major=ratio, pa_major=pa, coords=SVector{2}(coords))
+AccessorsExtra.construct(::Type{EllipticGaussian}, (_,flux)::Pair{typeof(flux)}, (_,fwhm_max)::Pair{typeof(fwhm_max)}, (_,fwhm_min)::Pair{typeof(fwhm_min)}, (_,pa)::Pair{typeof(position_angle)}, (_,coords)::Pair{typeof(coords)}) =
+    EllipticGaussian(; flux, σ_major=fwhm_to_σ(fwhm_max), ratio_minor_major=fwhm_min/fwhm_max, pa_major=pa, coords=SVector{2}(coords))
