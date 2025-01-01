@@ -181,6 +181,8 @@ end
 @testitem "envelopes" begin
     using StaticArrays
     using LinearAlgebra: norm
+    using Unitful
+    using IntervalSets
 
     cs = [
         Point(flux=1.5, coords=SVector(1., 2.)),
@@ -192,6 +194,9 @@ end
     @testset for c in cs, x in xs
         @test visibility(abs, c, x) ∈ visibility_envelope(abs, c, norm(x))
         @test mod2pi(visibility(angle, c, x)+π)-π ∈ visibility_envelope(angle, c, norm(x))
+        @test mod(visibility(rad2deg∘angle, c, x)+180, 0..360)-180 ∈ visibility_envelope(rad2deg∘angle, c, norm(x))
+        @test mod2pi(visibility(u"rad"∘angle, c, x)+π)-π ∈ visibility_envelope(u"rad"∘angle, c, norm(x))
+        @test mod(visibility(u"°"∘angle, c, x)+180, 0..360)-180 ∈ visibility_envelope(u"°"∘angle, c, norm(x))
     end
 end
 
