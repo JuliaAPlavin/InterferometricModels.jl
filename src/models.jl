@@ -43,18 +43,13 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
     ratio_minor_major::T
     pa_major::T
     coords::SVector{2, TC}
-
-    function EllipticGaussian(flux, σ_major, ratio_minor_major, pa_major, coords)
-        @assert 0 ≤ ratio_minor_major ≤ 1
-        new{typeof(flux),typeof(σ_major),eltype(coords),typeof(ratio_minor_major)}(flux, σ_major, ratio_minor_major, pa_major, coords)
-    end
 end
 
 EllipticGaussian(c::EllipticGaussian) = c
 EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1., 0., c.coords)
 
-fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
-fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
+fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * (c.ratio_minor_major ≥ 1 ? c.ratio_minor_major : one(c.ratio_minor_major)))
+fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * (c.ratio_minor_major ≤ 1 ? c.ratio_minor_major : one(c.ratio_minor_major)))
 fwhm_average(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * √(c.ratio_minor_major))  # geometric average
 effective_area(c::EllipticGaussian) = 2π * c.σ_major^2 * c.ratio_minor_major
 @accessor position_angle(c::EllipticGaussian) = c.pa_major
