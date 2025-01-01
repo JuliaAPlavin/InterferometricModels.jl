@@ -9,8 +9,8 @@ Base.broadcastable(c::ModelComponent) = Ref(c)
 position_angle((c_from, c_to)::Pair{<:ModelComponent, <:ModelComponent}) = atan( (coords(c_to) - coords(c_from))... )
 separation(c_from::ModelComponent, c_to::ModelComponent) = hypot( (coords(c_from) - coords(c_to))... )
 
-flux(c::ModelComponent) = c.flux
-coords(c::ModelComponent) = c.coords
+@accessor flux(c::ModelComponent) = c.flux
+@accessor coords(c::ModelComponent) = c.coords
 Tb_peak(c::ModelComponent, ν) = intensity_to_Tb(intensity_peak(c), ν)
 
 
@@ -25,49 +25,65 @@ fwhm_average(c::Point{TF,TC}) where {TF,TC} = zero(TC)
 effective_area(c::Point) = fwhm_average(c)^2  # also zero, but need proper units
 
 
-Base.@kwdef struct CircularGaussian{TF,TC} <: ModelComponent
+Base.@kwdef struct CircularGaussian{TF,TS,TC} <: ModelComponent
     flux::TF
-    σ::TC
+    σ::TS
     coords::SVector{2, TC}
 end
 
-fwhm_max(c::CircularGaussian) = fwhm_average(c)
-fwhm_min(c::CircularGaussian) = fwhm_average(c)
-fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
-effective_area(c::CircularGaussian) = 2π * c.σ^2
+@accessor fwhm_max(c::CircularGaussian) = fwhm_average(c)
+@accessor fwhm_min(c::CircularGaussian) = fwhm_average(c)
+@accessor fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
+@accessor effective_area(c::CircularGaussian) = 2π * c.σ^2
 
 
-Base.@kwdef struct EllipticGaussian{TF,TC,T} <: ModelComponent
+Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
     flux::TF
-    σ_major::TC
+    σ_major::TS
     ratio_minor_major::T
     pa_major::T
     coords::SVector{2, TC}
 end
 
+EllipticGaussian(c::EllipticGaussian) = c
+EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1, 0, c.coords)
+
 fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
 fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
 fwhm_average(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * √(c.ratio_minor_major))  # geometric average
 effective_area(c::EllipticGaussian) = 2π * c.σ_major^2 * c.ratio_minor_major
-position_angle(c::EllipticGaussian) = c.pa_major
+@accessor position_angle(c::EllipticGaussian) = c.pa_major
+Accessors.set(c::EllipticGaussian, ::typeof(fwhm_max), val) = setproperties(c, (σ_major = fwhm_to_σ(val), ratio_minor_major=c.σ_major/fwhm_to_σ(val) * c.ratio_minor_major))
+Accessors.set(c::EllipticGaussian, ::typeof(fwhm_min), val) = @set c.ratio_minor_major = fwhm_to_σ(val) / c.σ_major
 
 
-Base.@kwdef struct EllipticGaussianCovmat{TF,TC,TM,TMI} <: ModelComponent
+Base.@kwdef struct EllipticGaussianCovmat{TF,TC,TM} <: ModelComponent
     flux::TF
     covmat::TM
-    invcovmat::TMI
     coords::SVector{2, TC}
 end
 
-effective_area(c::EllipticGaussianCovmat) = 2π * sqrt(1/det(c.covmat))
+effective_area(c::EllipticGaussianCovmat) = 2π * sqrt(det(c.covmat))
 
-EllipticGaussianCovmat(c::CircularGaussian) = EllipticGaussianCovmat(; c.flux, covmat=Diagonal(SVector(1, 1) ./ c.σ^2), invcovmat=Diagonal(SVector(1, 1) .* c.σ^2), c.coords)
+EllipticGaussianCovmat(c::EllipticGaussianCovmat) = c
+EllipticGaussianCovmat(c::CircularGaussian) = EllipticGaussianCovmat(; c.flux, covmat=Diagonal(SVector(1, 1) .* c.σ^2), c.coords)
 EllipticGaussianCovmat(c::EllipticGaussian) = let
     si, co = sincos(position_angle(c))
-    σs_inv = 1 ./ (c.σ_major .* SVector(c.ratio_minor_major, 1))
-    trmat = Diagonal(σs_inv) * @SMatrix([co -si; si co])
-    covmat = trmat' * trmat
-    EllipticGaussianCovmat(; c.flux, covmat, invcovmat=inv(covmat), c.coords)
+    σs = c.σ_major .* SVector(c.ratio_minor_major, 1)
+    trmat = @SMatrix([co si; -si co]) * Diagonal(σs)
+    covmat = trmat * trmat'
+    EllipticGaussianCovmat(; c.flux, covmat, c.coords)
+end
+
+function EllipticGaussian(c::EllipticGaussianCovmat)
+	E = eigen(c.covmat)
+	vec = E.vectors[:, 2]
+	EllipticGaussian(;
+		c.flux, c.coords,
+		σ_major=√(E.values[2]),
+		ratio_minor_major=√(E.values[1] / E.values[2]),
+		pa_major=atan(vec[1], vec[2]),
+	)
 end
 
 
@@ -76,7 +92,9 @@ Base.@kwdef struct MultiComponentModel{TUP}
 end
 
 Base.broadcastable(c::MultiComponentModel) = Ref(c)
-components(m::MultiComponentModel) = m.components
+@accessor components(m::MultiComponentModel) = m.components
+
+Base.:(==)(a::MultiComponentModel, b::MultiComponentModel) = components(a) == components(b)
 
 flux(m::MultiComponentModel) = sum(flux, components(m))
 
@@ -93,9 +111,10 @@ end
 intensity(c::EllipticGaussian) = intensity(EllipticGaussianCovmat(c))
 function intensity(c::EllipticGaussianCovmat)
     peak = intensity_peak(c)
+    invcovmat = inv(c.covmat)
     (xy::XYType) -> let
         Δxy = xy - c.coords
-        peak * exp(-1/2 * dot(Δxy, c.covmat, Δxy))
+        peak * exp(-1/2 * dot(Δxy, invcovmat, Δxy))
     end
 end
 function intensity(m::MultiComponentModel)
@@ -111,16 +130,16 @@ end
 visibility(::typeof(abs), c::Point, uv::UVType) = c.flux
 visibility(::typeof(abs), c::CircularGaussian, uv::UVType) = c.flux * exp(-2π^2 * c.σ^2 * dot(uv, uv))
 visibility(::typeof(abs), c::EllipticGaussian, uv::UVType) = visibility(abs, EllipticGaussianCovmat(c), uv)
-visibility(::typeof(abs), c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, c.invcovmat, uv))
+visibility(::typeof(abs), c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, c.covmat, uv))
 
-visibility(c, uv::UVType) = visibility(c)(uv)
+visibility(c::Union{ModelComponent,MultiComponentModel}, uv::UVType) = visibility(c)(uv)
 visibility(c::Point) = @inline (uv::UVType) -> flux(c) * cis(visibility(angle, c, uv))
 function visibility(c::CircularGaussian)
     mul = -2π^2 * c.σ^2
     @inline (uv::UVType) -> flux(c) * exp(mul * dot(uv, uv)) * cis(visibility(angle, c, uv))
 end
 visibility(c::EllipticGaussian) = visibility(EllipticGaussianCovmat(c))
-visibility(c::EllipticGaussianCovmat) = @inline uv::UVType -> flux(c) * exp(-2π^2 * dot(uv, c.invcovmat * uv)) * cis(visibility(angle, c, uv))
+visibility(c::EllipticGaussianCovmat) = @inline uv::UVType -> flux(c) * exp(-2π^2 * dot(uv, c.covmat * uv)) * cis(visibility(angle, c, uv))
 function visibility(m::MultiComponentModel)
     bycomp = components(m) .|> visibility
     @inline (xy::UVType) -> sum(f -> f(xy), bycomp)
@@ -131,8 +150,18 @@ visibility_envelope(::typeof(abs), c::CircularGaussian, uvdist::Real) = c.flux *
 visibility_envelope(::typeof(abs), c::EllipticGaussian, uvdist::Real) = (c.flux * exp(-2π^2 * c.σ_major^2 * uvdist^2)) .. (c.flux * exp(-2π^2 * (c.σ_major * c.ratio_minor_major)^2 * uvdist^2))
 
 
+visibility(f::Function, args...; kwargs...) = f(visibility(args...; kwargs...))
+Broadcast.broadcasted(::typeof(visibility), f::Function, args...; kwargs...) = f.(visibility.(args...; kwargs...))
+
+
 Unitful.ustrip(x::ModelComponent) = @modify(x -> ustrip.(x), x |> Properties())
 Unitful.ustrip(x::MultiComponentModel) = @modify(ustrip, x.components |> Elements())
 # piracy, but...
 Unitful.ustrip(x::AbstractInterval) = @modify(ustrip, x |> Properties())
 Unitful.ustrip(u::Unitful.Units, x::AbstractInterval) = @modify(f -> ustrip(u, f), x |> Properties())
+
+
+Base.isapprox(a::ModelComponent, b::ModelComponent; kwargs...) =
+    propertynames(a) == propertynames(b) && all(k -> isapprox(getproperty(a, k), getproperty(b, k); kwargs...), propertynames(a))
+Base.isapprox(a::MultiComponentModel, b::MultiComponentModel; kwargs...) =
+    length(components(a)) == length(components(b)) && all(((x, y),) -> isapprox(x, y; kwargs...), zip(components(a), components(b)))
