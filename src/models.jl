@@ -106,7 +106,7 @@ end
 
 Base.broadcastable(c::MultiComponentModel) = Ref(c)
 @accessor components(m::MultiComponentModel) = m.components
-components(m::ModelComponent) = (m,)
+@accessor components(m::ModelComponent) = tuple(m)
 
 Base.:(==)(a::MultiComponentModel, b::MultiComponentModel) = components(a) == components(b)
 
