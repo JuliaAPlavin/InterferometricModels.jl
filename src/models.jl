@@ -43,6 +43,11 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
     ratio_minor_major::T
     pa_major::T
     coords::SVector{2, TC}
+
+    function EllipticGaussian(flux, σ_major, ratio_minor_major, pa_major, coords)
+        @assert 0 ≤ ratio_minor_major ≤ 1
+        new{typeof(flux),typeof(σ_major),eltype(coords),typeof(ratio_minor_major)}(flux, σ_major, ratio_minor_major, pa_major, coords)
+    end
 end
 
 EllipticGaussian(c::EllipticGaussian) = c

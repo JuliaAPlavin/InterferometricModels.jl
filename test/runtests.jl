@@ -63,6 +63,8 @@ end
     @test c ≈ EllipticGaussian(flux=1.5f0 * 1.00001f0, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
     @test !(c ≈ EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.9), coords=SVector(1., 2.)))
 
+    @test_throws AssertionError EllipticGaussian(flux=1.5, σ_major=0.25, ratio_minor_major=2.0, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
+
     @test intensity_peak(c) ≈ 1.5 / (2π*0.5*0.25)
     @test intensity(c)(SVector(1, 2)) ≈ intensity_peak(c)
     @test fwhm_max(c) ≈ 0.5 * √(8 * log(2))
