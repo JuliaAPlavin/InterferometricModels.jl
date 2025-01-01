@@ -46,7 +46,7 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
 end
 
 EllipticGaussian(c::EllipticGaussian) = c
-EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1, 0, c.coords)
+EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1., 0., c.coords)
 
 fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
 fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
