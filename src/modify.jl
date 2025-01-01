@@ -1,32 +1,23 @@
 using AccessorsExtra: ConstrainedLens, FixArgs
-import Accessors: set
 
-function set(c::CircularGaussian,
-             co::ConstrainedLens{<:Union{typeof(fwhm_max), typeof(fwhm_min), typeof(fwhm_average)}, PropertyLens{:σ}},
-             val)
-    ratio = convert(Real, val / co(c))
-    set(c, co.mo, co.mo(c) * ratio)
-end
-
-function set(c::CircularGaussian,
-             co::ConstrainedLens{typeof(effective_area), PropertyLens{:σ}},
-             val)
-    ratio = convert(Real, val / co(c))
-    set(c, co.mo, co.mo(c) * √ratio)
-end
+set(c::CircularGaussian,
+    co::ConstrainedLens{<:Union{typeof(fwhm_max), typeof(fwhm_min), typeof(fwhm_average), typeof(effective_area)}, PropertyLens{:σ}},
+    val) = set(c, co.o, val)
 
 function set(c::CircularGaussian,
              co::ConstrainedLens{<:Union{typeof(intensity_peak), Base.Fix2{typeof(Tb_peak)}}, PropertyLens{:σ}},
              val)
-    ratio = convert(Real, val / co(c))
-    set(c, co.mo, co.mo(c) / √ratio)
+    c_tmp = set(c, co.mo, oneunit(co.mo(c)))
+    ratio = convert(Real, val / co(c_tmp))
+    set(c_tmp, co.mo, co.mo(c_tmp) / √ratio)
 end
 
 function set(c::CircularGaussian,
              co::ConstrainedLens{<:Union{typeof(intensity_peak), Base.Fix2{typeof(Tb_peak)}, FixArgs{typeof(visibility),<:Tuple{typeof(abs),Vararg{Any}}}}, PropertyLens{:flux}},
              val)
-    ratio = convert(Real, val / co(c))
-    set(c, co.mo, co.mo(c) * ratio)
+    c_tmp = set(c, co.mo, oneunit(co.mo(c)))
+    ratio = convert(Real, val / co(c_tmp))
+    set(c_tmp, co.mo, co.mo(c_tmp) * ratio)
 end
 
 function set(c::CircularGaussian,

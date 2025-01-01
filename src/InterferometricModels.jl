@@ -4,7 +4,8 @@ using Unitful, UnitfulAstro
 using IntervalSets
 using StaticArrays
 using LinearAlgebra
-using Accessors
+using AccessorsExtra
+import AccessorsExtra: set, construct
 
 export
     ModelComponent, Point, CircularGaussian, EllipticGaussian, EllipticGaussianCovmat,
@@ -24,7 +25,6 @@ include("modify.jl")
 function __init__()
     if isdefined(Base.Experimental, :register_error_hint)
         Base.Experimental.register_error_hint(MethodError) do io, exc, argtypes, kwargs
-            # @info "" exc.f argtypes kwargs
             if exc.f === visibility_envelope && argtypes[1] == typeof(abs) && argtypes[2] <: MultiComponentModel
                 println(io, "\n\nvisibility_envelope(::MultiComponentModel) requires IntervalArithmetic.jl: install and load that package")
             end

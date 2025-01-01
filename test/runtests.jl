@@ -4,6 +4,8 @@ using TestItemRunner
 
 @testitem "point" begin
     using StaticArrays
+    using AccessorsExtra: construct, test_construct_laws
+    using Unitful
 
     c = Point(flux=1.5, coords=SVector(1., 2.))
     @test c ≈ Point(flux=1.5f0 * 1.00001f0, coords=SVector(1f0, 2f0) * 1.00001f0)
@@ -23,12 +25,18 @@ using TestItemRunner
     @test visibility.(abs, c, [SVector(-1.23, 4.56)]) |> only == flux(c)
 
     @test mod2pi(visibility(angle, c, SVector(-1.23, 4.56))) ≈ mod2pi(angle(0.01415 - 0.01170im))  rtol=1e-4
+
+    test_construct_laws(Point, flux=>2.5, coords=>SVector(1, 2))
+    test_construct_laws(Point, flux=>2.5u"m", coords=>SVector(1, 2))
+    test_construct_laws(Point, flux=>2.5, coords=>SVector(1, 2)u"°")
+    test_construct_laws(Point, flux=>2.5u"m", coords=>SVector(1, 2)u"°")
 end
 
 @testitem "circular" begin
     using StaticArrays
     using RectiGrids
-    using AccessorsExtra: construct, test_construct_laws
+    using AccessorsExtra: @o, construct, test_construct_laws
+    using Unitful
 
     c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
     @test c ≈ CircularGaussian(flux=1.5f0 * 1.00001f0, σ=0.1f0 * 1.00001f0, coords=SVector(1f0, 2f0))
@@ -57,13 +65,20 @@ end
     @test construct(CircularGaussian, flux=>2.5, fwhm_average=>0.2, coords=>SVector(1, 2)) ≈
           CircularGaussian(flux=2.5, σ=InterferometricModels.fwhm_to_σ(0.2), coords=SVector(1, 2))
     test_construct_laws(CircularGaussian, flux=>2.5, fwhm_average=>0.2, coords=>SVector(1, 2))
+    test_construct_laws(CircularGaussian, flux=>2.5, fwhm_max=>0.2u"°", coords=>SVector(1, 2)u"°")
+    test_construct_laws(CircularGaussian, flux=>2.5u"m", fwhm_average=>0.2, coords=>SVector(1, 2))
+    test_construct_laws(CircularGaussian, flux=>2.5u"m", (@o _.σ)=>0.2u"°", coords=>SVector(1, 2))
+    test_construct_laws(CircularGaussian, flux=>2.5u"m", effective_area=>0.2u"°^2", coords=>SVector(1, 2); cmp=(≈))
+    test_construct_laws(CircularGaussian, flux=>2.5u"m", intensity_peak=>0.2u"m/°^2", coords=>SVector(1, 2); cmp=(≈))
+    test_construct_laws(CircularGaussian, flux=>2.5u"W/m^2/Hz", (@o Tb_peak(_, 5u"GHz"))=>0.2u"K", coords=>SVector(1, 2); cmp=(≈))
 end
 
 @testitem "elliptical" begin
     using StaticArrays
     using RectiGrids
     using LinearAlgebra: normalize
-    using AccessorsExtra: construct, test_construct_laws
+    using AccessorsExtra: @o, construct, test_construct_laws
+    using Unitful
 
     c = EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
     @test c ≈ EllipticGaussian(flux=1.5f0 * 1.00001f0, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
@@ -106,7 +121,11 @@ end
 
     @test construct(EllipticGaussian, flux=>2.5, fwhm_max=>0.2, fwhm_min=>0.1, position_angle=>-0.5, coords=>SVector(1, 2)) ≈
           EllipticGaussian(flux=2.5, σ_major=InterferometricModels.fwhm_to_σ(0.2), ratio_minor_major=0.5, pa_major=-0.5, coords=SVector(1, 2))
+    test_construct_laws(EllipticGaussian, flux=>2.5, fwhm_max=>0.2, (@o _.ratio_minor_major) => 0.5, position_angle=>-0.5, coords=>SVector(1, 2))
     test_construct_laws(EllipticGaussian, flux=>2.5, fwhm_max=>0.2, fwhm_min=>0.1, position_angle=>-0.5, coords=>SVector(1, 2))
+    test_construct_laws(EllipticGaussian, flux=>2.5, fwhm_max=>0.2u"°", fwhm_min=>0.1u"°", position_angle=>-0.5, coords=>SVector(1, 2)u"°")
+    test_construct_laws(EllipticGaussian, flux=>2.5u"m", fwhm_max=>0.2, fwhm_min=>0.1, position_angle=>-0.5, coords=>SVector(1, 2))
+    test_construct_laws(EllipticGaussian, flux=>2.5u"m", fwhm_max=>0.2u"°", fwhm_min=>0.1u"°", position_angle=>-0.5, coords=>SVector(1, 2))
 end
 
 @testitem "elliptical covmat" begin
@@ -309,38 +328,45 @@ end
     using Unitful, UnitfulAstro, UnitfulAngles
     using AccessorsExtra
 
-    c = CircularGaussian(flux=1.0u"Jy", σ=0.1u"mas", coords=SVector(0, 0.)u"mas")
-    @testset "$o $func" for
-            (o, o_other) in [
-                (@optic(_.σ), @optic(_.flux)),
-                (@optic(_.flux), @optic(_.σ)),
-            ],
-            (func, tgt) in [
-                intensity_peak => 1u"Jy/mas^2",
-                @optic(Tb_peak(_, 5u"GHz")) => 1e11u"K",
-                @optic(visibility(abs, _, SVector(1e8, 0))) => 0.5u"Jy",
-            ]
-        co = modifying(o)(func)
-        c_upd = set(c, co, tgt)
-        @test coords(c_upd) == coords(c)
-        @test o_other(c_upd) == o_other(c)
-        @test o(c_upd) != o(c)
-        @test func(c_upd) ≈ tgt
-    end
-    @testset "$o $func" for
-            (o, o_other) in [
-                (@optic(_.σ), @optic(_.flux)),
-            ],
-            (func, tgt) in [
-                fwhm_average => 10u"mas",
-                effective_area => 10u"mas^2",
-            ]
-        co = modifying(o)(func)
-        c_upd = set(c, co, tgt)
-        @test coords(c_upd) == coords(c)
-        @test o_other(c_upd) == o_other(c)
-        @test o(c_upd) != o(c)
-        @test func(c_upd) ≈ tgt
+    @testset for c0 in [
+        CircularGaussian(flux=1.0u"Jy", σ=0.1u"mas", coords=SVector(0, 0.)u"mas"),
+        CircularGaussian(flux=1.0u"Jy", σ=0.0u"mas", coords=SVector(0, 0.)u"mas"),
+        CircularGaussian(flux=1.0u"Jy", σ=NaN*u"mas", coords=SVector(0, 0.)u"mas"),
+    ]
+        @testset "$o $func" for
+                (o, o_other) in [
+                    (@optic(_.σ), @optic(_.flux)),
+                    (@optic(_.flux), @optic(_.σ)),
+                ],
+                (func, tgt) in [
+                    intensity_peak => 1u"Jy/mas^2",
+                    @optic(Tb_peak(_, 5u"GHz")) => 1e11u"K",
+                    @optic(visibility(abs, _, SVector(1e8, 0))) => 0.5u"Jy",
+                ]
+            c = set(c0, o_other, oneunit(o_other(c0)))
+            co = modifying(o)(func)
+            c_upd = set(c, co, tgt)
+            @test coords(c_upd) == coords(c)
+            @test o_other(c_upd) == o_other(c)
+            @test o(c_upd) != o(c)
+            @test func(c_upd) ≈ tgt
+        end
+        @testset "$o $func" for
+                (o, o_other) in [
+                    (@optic(_.σ), @optic(_.flux)),
+                ],
+                (func, tgt) in [
+                    fwhm_average => 10u"mas",
+                    effective_area => 10u"mas^2",
+                ]
+            c = set(c0, o_other, oneunit(o_other(c0)))
+            co = modifying(o)(func)
+            c_upd = set(c, co, tgt)
+            @test coords(c_upd) == coords(c)
+            @test o_other(c_upd) == o_other(c)
+            @test o(c_upd) != o(c)
+            @test func(c_upd) ≈ tgt
+        end
     end
 end
 

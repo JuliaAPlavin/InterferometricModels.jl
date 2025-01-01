@@ -34,7 +34,7 @@ end
 @accessor fwhm_max(c::CircularGaussian) = fwhm_average(c)
 @accessor fwhm_min(c::CircularGaussian) = fwhm_average(c)
 @accessor fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
-@accessor effective_area(c::CircularGaussian) = 2π * c.σ^2
+@accessor effective_area(c::CircularGaussian) = 2π * Accessors.InverseFunctions.square(c.σ) # XXX: c.σ^2
 
 
 Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
@@ -187,15 +187,26 @@ Base.isapprox(a::MultiComponentModel, b::MultiComponentModel; kwargs...) =
     length(components(a)) == length(components(b)) && all(((x, y),) -> isapprox(x, y; kwargs...), zip(components(a), components(b)))
 
 
-import AccessorsExtra
+AccessorsExtra.init_for_construct(::Type{Point}) = Point(NaN, SVector(NaN, NaN))
+AccessorsExtra.init_for_construct(::Type{CircularGaussian}) = CircularGaussian(NaN, NaN, SVector(NaN, NaN))
+AccessorsExtra.init_for_construct(::Type{EllipticGaussian}) = EllipticGaussian(NaN, NaN, NaN, NaN, SVector(NaN, NaN))
 
-AccessorsExtra.construct(::Type{Point}, (_,flux)::Pair{typeof(flux)}, (_,coords)::Pair{typeof(coords)}) =
-    Point(; flux, coords=SVector{2}(coords))
-AccessorsExtra.construct(::Type{CircularGaussian}, (_,flux)::Pair{typeof(flux)}, (_,σ)::Pair{PropertyLens{:σ}}, (_,coords)::Pair{typeof(coords)}) =
-    CircularGaussian(; flux, σ=σ, coords=SVector{2}(coords))
-AccessorsExtra.construct(::Type{CircularGaussian}, (_,flux)::Pair{typeof(flux)}, (_,fwhm)::Pair{typeof(fwhm_average)}, (_,coords)::Pair{typeof(coords)}) =
-    CircularGaussian(; flux, σ=fwhm_to_σ(fwhm), coords=SVector{2}(coords))
-AccessorsExtra.construct(::Type{EllipticGaussian}, (_,flux)::Pair{typeof(flux)}, (_,fwhm_max)::Pair{typeof(fwhm_max)}, (_,ratio)::Pair{PropertyLens{:ratio_minor_major}}, (_,pa)::Pair{typeof(position_angle)}, (_,coords)::Pair{typeof(coords)}) =
-    EllipticGaussian(; flux, σ_major=fwhm_to_σ(fwhm_max), ratio_minor_major=ratio, pa_major=pa, coords=SVector{2}(coords))
-AccessorsExtra.construct(::Type{EllipticGaussian}, (_,flux)::Pair{typeof(flux)}, (_,fwhm_max)::Pair{typeof(fwhm_max)}, (_,fwhm_min)::Pair{typeof(fwhm_min)}, (_,pa)::Pair{typeof(position_angle)}, (_,coords)::Pair{typeof(coords)}) =
-    EllipticGaussian(; flux, σ_major=fwhm_to_σ(fwhm_max), ratio_minor_major=fwhm_min/fwhm_max, pa_major=pa, coords=SVector{2}(coords))
+AccessorsExtra.@define_construct_by_set Point (typeof(flux), typeof(coords))
+AccessorsExtra.@define_construct_by_set CircularGaussian (
+    typeof(flux),
+    Union{PropertyLens{:σ},typeof(fwhm_average),typeof(fwhm_max),typeof(fwhm_min),typeof(effective_area)},
+    typeof(coords)
+)
+AccessorsExtra.@define_construct_by_set EllipticGaussian (
+    typeof(flux),
+    typeof(fwhm_max),
+    Union{PropertyLens{:ratio_minor_major},typeof(fwhm_min)},
+    typeof(position_angle),
+    typeof(coords)
+)
+
+construct(::Type{CircularGaussian},
+    p1::Pair{typeof(flux)},
+    (o2, v2)::Pair{<:Union{typeof(intensity_peak),Base.Fix2{typeof(Tb_peak)}}},
+    p3::Pair{typeof(coords)}
+) = AccessorsExtra.construct_by_set(CircularGaussian, (p1, modifying(@o _.σ)(o2) => v2, p3))
