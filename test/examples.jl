@@ -353,7 +353,8 @@ And plot the complex visibility function at this specific UV location:
 """
 
 # ╔═╡ c16b5a2d-4b8b-4c8e-a93e-b21bcc91d2ae
-WGLMakie.activate!()
+# uncomment this for interactivity
+# WGLMakie.activate!()
 
 # ╔═╡ be50bb46-7110-4ae5-932b-bd5fd7601010
 md"""
