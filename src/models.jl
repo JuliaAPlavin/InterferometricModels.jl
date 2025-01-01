@@ -43,13 +43,22 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
     ratio_minor_major::T
     pa_major::T
     coords::SVector{2, TC}
+
+    function EllipticGaussian(flux, σ_major, ratio_minor_major, pa_major, coords)
+        if ratio_minor_major > 1
+            σ_major = (σ_major * ratio_minor_major)::typeof(σ_major)
+            ratio_minor_major = inv(ratio_minor_major)::typeof(ratio_minor_major)
+            pa_major = (pa_major + π/2)::typeof(pa_major)
+        end
+        new{typeof(flux),typeof(σ_major),eltype(coords),typeof(ratio_minor_major)}(flux, σ_major, ratio_minor_major, pa_major, coords)
+    end
 end
 
 EllipticGaussian(c::EllipticGaussian) = c
 EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1., 0., c.coords)
 
-fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * (c.ratio_minor_major ≥ 1 ? c.ratio_minor_major : one(c.ratio_minor_major)))
-fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * (c.ratio_minor_major ≤ 1 ? c.ratio_minor_major : one(c.ratio_minor_major)))
+fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
+fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
 fwhm_average(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * √(c.ratio_minor_major))  # geometric average
 effective_area(c::EllipticGaussian) = 2π * c.σ_major^2 * c.ratio_minor_major
 @accessor position_angle(c::EllipticGaussian) = c.pa_major
@@ -72,7 +81,7 @@ effective_area(c::EllipticGaussianCovmat) = 2π * sqrt(det(c.covmat))
 EllipticGaussianCovmat(c::EllipticGaussianCovmat) = c
 EllipticGaussianCovmat(c::CircularGaussian) = EllipticGaussianCovmat(; c.flux, covmat=Diagonal(SVector(1, 1) .* c.σ^2), c.coords)
 EllipticGaussianCovmat(c::EllipticGaussian) = let
-    si, co = sincos(position_angle(c))
+    si, co = sincos(c.pa_major)
     σs = c.σ_major .* SVector(c.ratio_minor_major, 1)
     trmat = @SMatrix([co si; -si co]) * Diagonal(σs)
     covmat = trmat * trmat'

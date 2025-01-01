@@ -75,11 +75,14 @@ end
     @test fwhm_min(c) ≈ 0.25 * √(8 * log(2))
     @test fwhm_average(c) ≈ sqrt(0.5*0.25) * √(8 * log(2))
 
-    c2 = EllipticGaussian(flux=1.5, σ_major=0.25, ratio_minor_major=2.0, pa_major=deg2rad(16.6992), coords=SVector(1., 2.))
+    c2 = EllipticGaussian(flux=1.5, σ_major=0.25, ratio_minor_major=2.0, pa_major=deg2rad(16.6992 + 90), coords=SVector(1., 2.))
+    @test_broken EllipticGaussian(flux=1.5, σ_major=1, ratio_minor_major=2.0, pa_major=deg2rad(16.6992 + 90), coords=SVector(1., 2.))
     @test intensity_peak(c2) ≈ intensity_peak(c)
     @test fwhm_min(c2) ≈ fwhm_min(c)
     @test fwhm_max(c2) ≈ fwhm_max(c)
     @test fwhm_average(c2) ≈ fwhm_average(c)
+    @test mod(position_angle(c2), π) ≈ mod(position_angle(c), π)
+    @test EllipticGaussianCovmat(c2) ≈ EllipticGaussianCovmat(c)
     
     off = normalize(SVector(0.3, 1)) * fwhm_max(c)/2
     @test intensity(c)(SVector(1, 2) + off) ≈ 0.5 * intensity_peak(c)
