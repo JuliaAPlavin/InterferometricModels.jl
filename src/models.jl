@@ -135,8 +135,14 @@ function intensity(c::EllipticGaussianCovmat)
         peak * exp(-1/2 * dot(Δxy, invcovmat, Δxy))
     end
 end
-function intensity(m::MultiComponentModel)
-    bycomp = components(m) .|> intensity
+
+# XXX: the sum(...) method should be the only one, but it has performance issues for Tuples for some reason
+function intensity(m::MultiComponentModel{<:Tuple})
+    bycomp = map(intensity, components(m))
+    (xy::XYType) -> map(f -> f(xy), bycomp) |> sum
+end
+function intensity(m::MultiComponentModel{<:AbstractArray})
+    bycomp = map(intensity, components(m))
     (xy::XYType) -> sum(f -> f(xy), bycomp)
 end
 
@@ -164,9 +170,15 @@ end
 visibility(c::EllipticGaussian) = visibility(EllipticGaussianCovmat(c))
 visibility(c::EllipticGaussianCovmat) = @inline uv::UVType -> flux(c) * exp(-2π^2 * dot(uv, c.covmat, uv)) * cis(visibility(angle, c, uv))
 visibility(m::MultiComponentModel{<:Tuple{Any}}) = visibility(only(components(m)))
-function visibility(m::MultiComponentModel)
-    bycomp = components(m) .|> visibility
-    @inline (xy::UVType) -> sum(f -> f(xy), bycomp)
+
+# XXX: the sum(...) method should be the only one, but it has performance issues for Tuples for some reason
+function visibility(m::MultiComponentModel{<:Tuple})
+    bycomp = map(visibility, components(m))
+    (xy::UVType) -> map(f -> f(xy), bycomp) |> sum
+end
+function visibility(m::MultiComponentModel{<:AbstractArray})
+    bycomp = map(visibility, components(m))
+    (xy::UVType) -> sum(f -> f(xy), bycomp)
 end
 
 visibility_envelope(::typeof(abs), c::Point, uvdist::Real) = c.flux ± eps(float(c.flux))
