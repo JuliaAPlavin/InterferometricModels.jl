@@ -7,6 +7,7 @@ using LinearAlgebra
 using DataPipes
 using AccessorsExtra
 import AccessorsExtra: set, construct
+using AccessorsExtra.InverseFunctions: square
 
 export
     ModelComponent, Point, CircularGaussian, EllipticGaussian, EllipticGaussianCovmat,

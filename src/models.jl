@@ -34,7 +34,7 @@ end
 @accessor fwhm_max(c::CircularGaussian) = fwhm_average(c)
 @accessor fwhm_min(c::CircularGaussian) = fwhm_average(c)
 @accessor fwhm_average(c::CircularGaussian) = σ_to_fwhm(c.σ)
-@accessor effective_area(c::CircularGaussian) = 2π * c.σ^2
+@accessor effective_area(c::CircularGaussian) = 2π * square(c.σ)
 
 
 Base.@kwdef struct EllipticGaussian{TF,TS,TC,TR,TP} <: ModelComponent
@@ -193,7 +193,7 @@ Broadcast.broadcasted(::typeof(visibility), f::Function, args...; kwargs...) = f
 
 
 Unitful.ustrip(x::ModelComponent) = @modify(x -> ustrip.(x), x |> Properties())
-Unitful.ustrip(x::MultiComponentModel) = @modify(ustrip, x.components |> Elements())
+Unitful.ustrip(x::MultiComponentModel) = @modify(ustrip, components(x)[∗])
 # piracy, but...
 Unitful.ustrip(x::AbstractInterval) = @modify(ustrip, x |> Properties())
 Unitful.ustrip(u::Unitful.Units, x::AbstractInterval) = @modify(f -> ustrip(u, f), x |> Properties())
