@@ -46,7 +46,7 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,T} <: ModelComponent
 end
 
 EllipticGaussian(c::EllipticGaussian) = c
-EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1, 0, c.coords)
+EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1., 0., c.coords)
 
 fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
 fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
@@ -63,6 +63,10 @@ Base.@kwdef struct EllipticGaussianCovmat{TF,TC,TM} <: ModelComponent
     coords::SVector{2, TC}
 end
 
+fwhm_max(c::EllipticGaussianCovmat) = √(eigen(c.covmat).values[2]) |> σ_to_fwhm
+fwhm_min(c::EllipticGaussianCovmat) = √(eigen(c.covmat).values[1]) |> σ_to_fwhm
+fwhm_average(c::EllipticGaussianCovmat) = (eigen(c.covmat).values |> prod)^0.25 |> σ_to_fwhm
+
 effective_area(c::EllipticGaussianCovmat) = 2π * sqrt(det(c.covmat))
 
 EllipticGaussianCovmat(c::EllipticGaussianCovmat) = c
@@ -76,14 +80,14 @@ EllipticGaussianCovmat(c::EllipticGaussian) = let
 end
 
 function EllipticGaussian(c::EllipticGaussianCovmat)
-	E = eigen(c.covmat)
-	vec = E.vectors[:, 2]
-	EllipticGaussian(;
-		c.flux, c.coords,
-		σ_major=√(E.values[2]),
-		ratio_minor_major=√(E.values[1] / E.values[2]),
-		pa_major=atan(vec[1], vec[2]),
-	)
+    E = eigen(c.covmat)
+    vec = E.vectors[:, 2]
+    EllipticGaussian(;
+        c.flux, c.coords,
+        σ_major=√(E.values[2]),
+        ratio_minor_major=√(E.values[1] / E.values[2]),
+        pa_major=atan(vec[1], vec[2]),
+    )
 end
 
 
@@ -126,7 +130,7 @@ end
 # default definitions: work for all symmetric components
 @inline visibility(::typeof(angle), c::ModelComponent, uv::UVType) = 2π * dot(uv, coords(c))
 @inline visibility_envelope(::typeof(angle), c::ModelComponent, uvdist::Real) = 0 ± 2π * min(norm(coords(c)) * uvdist, 0.5)
-@inline visibility_envelope(f::ComposedFunction{<:Any, typeof(angle)}, c::ModelComponent, uvdist::Real) =
+@inline visibility_envelope(f::ComposedFunction{<:Any, typeof(angle)}, c, uvdist::Real) =
     @modify(visibility_envelope(angle, c, uvdist) |> endpoints |> _[∗]) do x
         # XXX: assuming f is monotonic wrt angle
         f.outer(x)
