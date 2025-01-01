@@ -157,7 +157,8 @@ function visibility(c::CircularGaussian)
     @inline (uv::UVType) -> flux(c) * exp(mul * dot(uv, uv)) * cis(visibility(angle, c, uv))
 end
 visibility(c::EllipticGaussian) = visibility(EllipticGaussianCovmat(c))
-visibility(c::EllipticGaussianCovmat) = @inline uv::UVType -> flux(c) * exp(-2π^2 * dot(uv, c.covmat * uv)) * cis(visibility(angle, c, uv))
+visibility(c::EllipticGaussianCovmat) = @inline uv::UVType -> flux(c) * exp(-2π^2 * dot(uv, c.covmat, uv)) * cis(visibility(angle, c, uv))
+visibility(m::MultiComponentModel{<:Tuple{Any}}) = visibility(only(components(m)))
 function visibility(m::MultiComponentModel)
     bycomp = components(m) .|> visibility
     @inline (xy::UVType) -> sum(f -> f(xy), bycomp)
