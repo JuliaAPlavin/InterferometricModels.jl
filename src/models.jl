@@ -63,6 +63,10 @@ Base.@kwdef struct EllipticGaussianCovmat{TF,TC,TM} <: ModelComponent
     coords::SVector{2, TC}
 end
 
+fwhm_max(c::EllipticGaussianCovmat) = √(eigen(c.covmat).values[2]) |> σ_to_fwhm
+fwhm_min(c::EllipticGaussianCovmat) = √(eigen(c.covmat).values[1]) |> σ_to_fwhm
+fwhm_average(c::EllipticGaussianCovmat) = (eigen(c.covmat).values |> prod)^0.25 |> σ_to_fwhm
+
 effective_area(c::EllipticGaussianCovmat) = 2π * sqrt(det(c.covmat))
 
 EllipticGaussianCovmat(c::EllipticGaussianCovmat) = c

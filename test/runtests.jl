@@ -99,6 +99,9 @@ end
         ccov_el = EllipticGaussian(ccov)
         @test flux(ccov_el) == flux(ccov) == flux(c)
         @test coords(ccov_el) == coords(ccov) == coords(c)
+        @test fwhm_average(ccov_el) ≈ fwhm_average(ccov) ≈ fwhm_average(c)
+        @test fwhm_max(ccov_el) ≈ fwhm_max(ccov) ≈ fwhm_max(c)
+        @test fwhm_min(ccov_el) ≈ fwhm_min(ccov) ≈ fwhm_min(c)
         @test intensity_peak(ccov_el) ≈ intensity_peak(ccov) ≈ intensity_peak(c)
         xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
         @test intensity(ccov_el).(xs) ≈ intensity(ccov).(xs) ≈ intensity(c).(xs)
