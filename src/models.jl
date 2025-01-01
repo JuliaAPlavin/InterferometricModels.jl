@@ -76,14 +76,14 @@ EllipticGaussianCovmat(c::EllipticGaussian) = let
 end
 
 function EllipticGaussian(c::EllipticGaussianCovmat)
-	E = eigen(c.covmat)
-	vec = E.vectors[:, 2]
-	EllipticGaussian(;
-		c.flux, c.coords,
-		σ_major=√(E.values[2]),
-		ratio_minor_major=√(E.values[1] / E.values[2]),
-		pa_major=atan(vec[1], vec[2]),
-	)
+    E = eigen(c.covmat)
+    vec = E.vectors[:, 2]
+    EllipticGaussian(;
+        c.flux, c.coords,
+        σ_major=√(E.values[2]),
+        ratio_minor_major=√(E.values[1] / E.values[2]),
+        pa_major=atan(vec[1], vec[2]),
+    )
 end
 
 
