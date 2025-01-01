@@ -8,7 +8,7 @@ function set(c::CircularGaussian,
              co::ConstrainedLens{<:Union{typeof(intensity_peak), Base.Fix2{typeof(Tb_peak)}}, PropertyLens{:σ}},
              val)
     c_tmp = set(c, co.mo, oneunit(co.mo(c)))
-    ratio = convert(Real, val / co(c_tmp))
+    ratio = val / co(c_tmp)
     set(c_tmp, co.mo, co.mo(c_tmp) / √ratio)
 end
 
@@ -16,7 +16,7 @@ function set(c::Union{CircularGaussian,EllipticGaussian},
              co::ConstrainedLens{<:Union{typeof(intensity_peak), Base.Fix2{typeof(Tb_peak)}, FixArgs{typeof(visibility),<:Tuple{typeof(abs),Vararg{Any}}}}, PropertyLens{:flux}},
              val)
     c_tmp = set(c, co.mo, oneunit(co.mo(c)))
-    ratio = convert(Real, val / co(c_tmp))
+    ratio = val / co(c_tmp)
     set(c_tmp, co.mo, co.mo(c_tmp) * ratio)
 end
 
