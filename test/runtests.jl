@@ -183,6 +183,21 @@ end
     @test deepcopy(m) == m
 end
 
+@testitem "model arithmetic" begin
+    using StaticArrays
+
+    c1 = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
+    c2 = EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.6992), coords=SVector(0.5, -0.1))
+    c3 = CircularGaussian(flux=1, σ=0.1, coords=SVector(1, 2))
+    @test c1 + c2 === MultiComponentModel((c1, c2))
+    @test c1 + c2 + c3 === MultiComponentModel((c1, c2, c3))
+    @test (c1 + c2) + c3 === MultiComponentModel((c1, c2, c3))
+    @test c1 + (c2 + c3) === MultiComponentModel((c1, c2, c3))
+
+    @test 2 * c1 === CircularGaussian(flux=3., σ=0.1, coords=SVector(1., 2.))
+    @test 3 * (c1 + (c2 + c3)) === MultiComponentModel((3c1, 3c2, 3c3))
+end
+
 @testitem "beam" begin
     using AccessorsExtra
     using AccessorsExtra: test_construct_laws

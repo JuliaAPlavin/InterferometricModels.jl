@@ -106,8 +106,13 @@ end
 
 Base.broadcastable(c::MultiComponentModel) = Ref(c)
 @accessor components(m::MultiComponentModel) = m.components
+components(m::ModelComponent) = (m,)
 
 Base.:(==)(a::MultiComponentModel, b::MultiComponentModel) = components(a) == components(b)
+
+Base.:+(args::Union{ModelComponent,MultiComponentModel}...) = MultiComponentModel(reduce((a, b) -> (a..., b...), components.(args)))
+Base.:*(x::Number, m::ModelComponent) = @modify(c -> x*c, flux(m))
+Base.:*(x::Number, m::MultiComponentModel) = @modify(c -> x*c, components(m)[∗])
 
 flux(m::MultiComponentModel) = sum(flux, components(m))
 
