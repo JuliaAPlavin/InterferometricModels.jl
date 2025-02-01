@@ -1,7 +1,3 @@
-const UVType = StaticVector{2}
-const XYType = StaticVector{2}
-
-
 abstract type ModelComponent end
 
 Base.broadcastable(c::ModelComponent) = Ref(c)

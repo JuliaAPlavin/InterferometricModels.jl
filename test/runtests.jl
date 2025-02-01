@@ -186,6 +186,7 @@ end
         xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
         @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
         @test visibility.(m, xs) ≈ 2 .* visibility.(c1, xs) .+ visibility.(c2, xs)
+        @test visibility.(m, UV.(xs)) ≈ 2 .* visibility.(c1, UV.(xs)) .+ visibility.(c2, xs)
         @test flux(m) == 4.5
         @test deepcopy(m) == m
         @test @set(components(m)[2].flux = 1.500002f0) ≈ m
@@ -505,7 +506,7 @@ end
     @test intensity(model, SVector(0., 30)u"μas") ≈ 4.514182771546066e20
 
     @test visibility(model, SVector(0., 0.)) ≈ 1
-    @test visibility(model, SVector(1, 0.)) ≈ 1
+    @test visibility(model, UV(1, 0.)) ≈ 1
     @test visibility(model, SVector(5e9, 0.)) ≈ -0.304 + 0.0996im  rtol=1e-3
     @test visibility(model)(SVector(5e9, 0.)) ≈ -0.304 + 0.0996im  rtol=1e-3
     @test visibility(abs, model, SVector(5e9, 0.)) ≈ abs(-0.304 + 0.0996im)  rtol=1e-3
