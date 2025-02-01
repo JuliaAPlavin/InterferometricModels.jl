@@ -124,6 +124,8 @@ intensity_peak(c::CircularGaussian) = flux(c) / effective_area(c)
 intensity_peak(c::EllipticGaussian) = flux(c) / effective_area(c)
 intensity_peak(c::EllipticGaussianCovmat) = flux(c) / effective_area(c)
 
+intensity(c, uv::XYType) = intensity(c)(uv)
+
 function intensity(c::CircularGaussian)
     peak = intensity_peak(c)
     mul = -1 / (2*c.σ^2)
@@ -164,7 +166,7 @@ visibility(::typeof(abs), c::CircularGaussian, uv::UVType) = c.flux * exp(-2π^2
 visibility(::typeof(abs), c::EllipticGaussian, uv::UVType) = visibility(abs, EllipticGaussianCovmat(c), uv)
 visibility(::typeof(abs), c::EllipticGaussianCovmat, uv::UVType) = c.flux * exp(-2π^2 * dot(uv, c.covmat, uv))
 
-visibility(c::Union{ModelComponent,MultiComponentModel}, uv::UVType) = visibility(c)(uv)
+visibility(c, uv::UVType) = visibility(c)(uv)
 visibility(c::Point) = @inline (uv::UVType) -> flux(c) * cis(visibility(angle, c, uv))
 function visibility(c::CircularGaussian)
     mul = -2π^2 * c.σ^2

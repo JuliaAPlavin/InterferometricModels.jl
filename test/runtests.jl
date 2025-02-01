@@ -495,14 +495,27 @@ end
     @test visibility(ec, uv) ≈ visibility(e, uv)
 end
 
+@testitem "VlbiSkyModels.jl" begin
+    import VLBISkyModels as VSM
+    using StaticArrays
+    using Unitful, UnitfulAngles
+
+    model = VSM.modify(VSM.MRing(0.1, -0.2), VSM.Stretch(VSM.μas2rad(30)))
+    @test intensity(model)(SVector(0., 0.)) ≈ 0
+    @test intensity(model, SVector(0., 30)u"μas") ≈ 4.514182771546066e20
+
+    @test visibility(model, SVector(0., 0.)) ≈ 1
+    @test visibility(model, SVector(1, 0.)) ≈ 1
+    @test visibility(model, SVector(5e9, 0.)) ≈ -0.304 + 0.0996im  rtol=1e-3
+    @test visibility(model)(SVector(5e9, 0.)) ≈ -0.304 + 0.0996im  rtol=1e-3
+    @test visibility(abs, model, SVector(5e9, 0.)) ≈ abs(-0.304 + 0.0996im)  rtol=1e-3
+end
+
 
 @testitem "_" begin
     import CompatHelperLocal as CHL
     import Aqua
 
     CHL.@check()
-    Aqua.test_ambiguities(InterferometricModels, recursive=false)
-    Aqua.test_unbound_args(InterferometricModels)
-    Aqua.test_undefined_exports(InterferometricModels)
-    Aqua.test_stale_deps(InterferometricModels)
+    Aqua.test_all(InterferometricModels, ambiguities=(;broken=true))
 end
