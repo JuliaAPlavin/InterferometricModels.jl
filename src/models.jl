@@ -195,8 +195,8 @@ function visibility_envelope(f::Function, model, uvdist::Real; npoints=100, seed
 	ends = extrema(rand(rng, 0..2π, npoints)) do θ
 		visibility(f, model, uvdist * SVector(sincos(θ)))
 	end
-    w = ends[2] - ends[1]
-    Interval(ends[1] - 0.1w, ends[2] + 0.1w)  # XXX: arbitrary margin, not guaranteed
+    m = maximum(abs, ends)
+    Interval(ends[1] - 0.01m, ends[2] + 0.01m)  # XXX: arbitrary margin, not guaranteed
 end
 function visibility_envelope(f::typeof(abs), model, uvdist::Real; kwargs...)
     i = @invoke visibility_envelope(f::Function, model, uvdist; kwargs...)
