@@ -30,6 +30,14 @@ Base.@kwdef struct CircularGaussian{TF,TS,TC} <: ModelComponent
 end
 @batteries CircularGaussian
 CircularGaussian(flux, σ, coords) = CircularGaussian(flux, σ, SVector{2}(coords))
+function CircularGaussian(c::Point)
+    FT = promote_type(typeof(c.flux), eltype(c.coords))
+    CircularGaussian(c.flux, zero(FT), c.coords)
+end
+function Point(c::CircularGaussian)
+    iszero(c.σ) || throw(ArgumentError("Cannot convert CircularGaussian with non-zero σ ($(c.σ)) to Point"))
+    Point(c.flux, c.coords)
+end
 
 @accessor fwhm_max(c::CircularGaussian) = fwhm_average(c)
 @accessor fwhm_min(c::CircularGaussian) = fwhm_average(c)
@@ -62,6 +70,14 @@ end
 function EllipticGaussian(c::CircularGaussian)
 	FT = promote_type(typeof(c.flux), typeof(c.σ), eltype(c.coords))
 	EllipticGaussian(c.flux, c.σ, one(FT), zero(FT), c.coords)
+end
+function Point(c::EllipticGaussian)
+    iszero(c.σ_major) || throw(ArgumentError("Cannot convert EllipticGaussian with non-zero σ_major ($(c.σ_major)) to Point"))
+    Point(c.flux, c.coords)
+end
+function CircularGaussian(c::EllipticGaussian)
+    isone(c.ratio_minor_major) || throw(ArgumentError("Cannot convert EllipticGaussian with non-unity ratio_minor_major ($(c.ratio_minor_major)) to CircularGaussian"))
+    CircularGaussian(c.flux, c.σ_major, c.coords)
 end
 
 fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
