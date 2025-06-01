@@ -330,9 +330,14 @@ end
     using UnitfulAstro
     using UnitfulAngles
 
-    @test InterferometricModels.σ_to_fwhm(0.1) ≈ 0.23548200450309495
+    @test InterferometricModels.σ_to_fwhm(1)::Float64 ≈ 2.3548200450309493
+    @test InterferometricModels.σ_to_fwhm(0.1)::Float64 ≈ 0.23548200450309495
+    @test InterferometricModels.σ_to_fwhm(0.1f0)::Float32 ≈ 0.23548200450309495
+    @test ustrip(InterferometricModels.σ_to_fwhm(0.1f0u"m"))::Float32 ≈ 0.23548200450309495
     InverseFunctions.test_inverse(InterferometricModels.σ_to_fwhm, 0.1)
     InverseFunctions.test_inverse(InterferometricModels.σ_to_fwhm, 0.1u"m")
+    InverseFunctions.test_inverse(InterferometricModels.fwhm_to_σ, 0.1)
+    InverseFunctions.test_inverse(InterferometricModels.fwhm_to_σ, 0.1u"m")
     
     f = @optic(InterferometricModels.intensity_to_Tb(_, 5u"GHz"))
     @test f(0.1u"Jy/mas^2") ≈ 5.539089534545945e9u"K"
