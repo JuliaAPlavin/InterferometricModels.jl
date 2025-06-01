@@ -54,7 +54,15 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,TR,TP} <: ModelComponent
     end
 end
 @batteries EllipticGaussian
-EllipticGaussian(c::CircularGaussian) = EllipticGaussian(c.flux, c.σ, 1., 0., c.coords)
+
+function EllipticGaussian(c::Point)
+	FT = promote_type(typeof(c.flux), eltype(c.coords))
+	EllipticGaussian(c.flux, zero(eltype(c.coords)), one(FT), zero(FT), c.coords)
+end
+function EllipticGaussian(c::CircularGaussian)
+	FT = promote_type(typeof(c.flux), typeof(c.σ), eltype(c.coords))
+	EllipticGaussian(c.flux, c.σ, one(FT), zero(FT), c.coords)
+end
 
 fwhm_max(c::EllipticGaussian) = σ_to_fwhm(c.σ_major)
 fwhm_min(c::EllipticGaussian) = σ_to_fwhm(c.σ_major * c.ratio_minor_major)
