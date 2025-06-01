@@ -53,7 +53,7 @@ Base.@kwdef struct EllipticGaussian{TF,TS,TC,TR,TP} <: ModelComponent
     coords::SVector{2, TC}
 
     function EllipticGaussian(flux, σ_major, ratio_minor_major, pa_major, coords)
-        if ratio_minor_major > 1
+        if ratio_minor_major isa Number && ratio_minor_major > 1
             σ_major = (σ_major * ratio_minor_major)::typeof(σ_major)
             ratio_minor_major = inv(ratio_minor_major)::typeof(ratio_minor_major)
             pa_major = (pa_major + π/oftype(pa_major, 2))::typeof(pa_major)
