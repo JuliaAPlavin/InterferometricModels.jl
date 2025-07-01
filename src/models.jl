@@ -146,10 +146,16 @@ intensity_peak(c::EllipticGaussianCovmat) = flux(c) / effective_area(c)
 
 intensity(c, uv::XYType) = intensity(c)(uv)
 
+const MIN_EXP_ARG = log(1e-30)  # if flux < 10^-30 of component peak, return zero
+
 function intensity(c::CircularGaussian)
     peak = intensity_peak(c)
     mul = -1 / (2*c.σ^2)
-    (xy::XYType) -> peak * exp(mul * dot(xy - c.coords, xy - c.coords))
+    function(xy::XYType)
+        Δxy = xy - c.coords
+        expfac = mul * dot(Δxy, Δxy)
+        expfac > MIN_EXP_ARG ? peak * exp(expfac) : zero(peak * exp(expfac))
+    end
 end
 intensity(c::EllipticGaussian) = intensity(EllipticGaussianCovmat(c))
 function intensity(c::EllipticGaussianCovmat)
@@ -157,7 +163,8 @@ function intensity(c::EllipticGaussianCovmat)
     invcovmat = inv(c.covmat)
     (xy::XYType) -> let
         Δxy = xy - c.coords
-        peak * exp(-1/2 * dot(Δxy, invcovmat, Δxy))
+        expfac = -1/2 * dot(Δxy, invcovmat, Δxy)
+        expfac > MIN_EXP_ARG ? peak * exp(expfac) : zero(peak * exp(expfac))
     end
 end
 
