@@ -135,7 +135,11 @@ Base.:(==)(a::MultiComponentModel, b::MultiComponentModel) = components(a) == co
 
 Base.:+(args::Union{ModelComponent,MultiComponentModel}...) = MultiComponentModel(reduce((a, b) -> (a..., b...), components.(args)))
 Base.:*(x::Number, m::ModelComponent) = @modify(c -> x*c, flux(m))
+Base.:*(m::ModelComponent, x::Number) = @modify(c -> c*x, flux(m))
 Base.:*(x::Number, m::MultiComponentModel) = @modify(c -> x*c, components(m)[∗])
+Base.:*(m::MultiComponentModel, x::Number) = @modify(c -> c*x, components(m)[∗])
+Base.:/(m::ModelComponent, x::Number) = @modify(c -> c/x, flux(m))
+Base.:/(m::MultiComponentModel, x::Number) = @modify(c -> c/x, components(m)[∗])
 
 flux(m::MultiComponentModel) = sum(flux, components(m))
 
