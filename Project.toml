@@ -1,7 +1,7 @@
 name = "InterferometricModels"
 uuid = "b395d269-c2ec-4df6-b679-36919ad600ca"
 authors = ["Alexander Plavin <alexander@plav.in>"]
-version = "0.1.30"
+version = "0.1.31"
 
 [deps]
 AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"

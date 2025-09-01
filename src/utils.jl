@@ -32,3 +32,6 @@ struct UV{T} <: FieldVector{2, T}
 end
 
 UV(uvw::UVW) = UV(uvw.u, uvw.v)
+
+StaticArrays.similar_type(::Type{<:UV}, ::Type{T}, s::Size{(2,)}) where {T} = UV{T}
+StaticArrays.similar_type(::Type{<:UVW}, ::Type{T}, s::Size{(3,)}) where {T} = UVW{T}

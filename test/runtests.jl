@@ -2,6 +2,17 @@ using TestItems
 using TestItemRunner
 @run_package_tests
 
+
+@testitem "UV(W)" begin
+    using Unitful
+
+    @test UV(1, 2) * 2 === UV(2, 4)
+    @test UV(1, 2) * 2.5 === UV(2.5, 5.0)
+    @test UV(1, 2) * 2.5u"m" === UV(2.5u"m", 5.0u"m")
+    @test ustrip(UV(1, 2) * 2.5u"m") === UV(2.5, 5.0)
+    @test ustrip(UVW(1, 2, 3) * 2.5u"m") === UVW(2.5, 5.0, 7.5)
+end
+
 @testitem "point" begin
     using StaticArrays
     using AccessorsExtra: construct, test_construct_laws
