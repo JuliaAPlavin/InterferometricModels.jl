@@ -76,6 +76,11 @@ end
     @test intensity(c)(SVector(1, 2 - w)) ≈ 0.5 * intensity_peak(c)
     @test intensity(c)(SVector(1 + w/√(2), 2 + w/√(2))) ≈ 0.5 * intensity_peak(c)
 
+    w = 0.234
+    @test intensity(c)(SVector(1 + w, 2)) ≈ 1.5448985236186337
+    @test InterferometricModels.with_difmap_compat(() -> intensity(c)(SVector(1 + w, 2))) ≈ 1.5585475368633275
+    @test intensity(c)(SVector(1 + w, 2)) ≈ 1.5448985236186337
+
     @test visibility(c, SVector(0, 0)) == flux(c)
     @test visibility(c, SVector(1, 1/2)) ≈ 1.1720  rtol=1e-4
     @test visibility(c, SVector(-1.23, 4.56)) ≈ 0.0141454 - 0.0117022im  rtol=1e-4
