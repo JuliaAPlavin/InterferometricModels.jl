@@ -35,3 +35,23 @@ UV(uvw::UVW) = UV(uvw.u, uvw.v)
 
 StaticArrays.similar_type(::Type{<:UV}, ::Type{T}, s::Size{(2,)}) where {T} = UV{T}
 StaticArrays.similar_type(::Type{<:UVW}, ::Type{T}, s::Size{(3,)}) where {T} = UVW{T}
+
+
+const MIN_EXP_ARG = log(1e-30)  # if flux < 10^-30 of component peak, return zero
+
+# difmap uses lookup table for exp(), see mapres.c file in difmap source code
+# here, we define exp_for_gaussintensity() that can be swapped to use either:
+# - basic exp (correct, but slightly differs from difmap)
+# - difmap-like exp with lookup table (when matching difmap results is important)
+exp_for_gaussintensity(x) = exp_for_gaussintensity_basic(x)
+exp_for_gaussintensity_basic(x) = x > MIN_EXP_ARG ? exp(x) : zero(exp(x))
+function exp_for_gaussintensity_difmap(x)
+    @assert x ≤ 0
+    ETSIZ = 1024
+    nsigma = 4.5
+    expconv = ETSIZ/(0.5*nsigma^2)
+    x1 = -x * expconv
+    x1 > ETSIZ && return zero(exp(x))
+    x2 = -floor(x1) / expconv
+    return exp(x2)
+end
