@@ -230,7 +230,10 @@ end
     @test c1 + (c2 + c3) === MultiComponentModel((c1, c2, c3))
 
     @test 2 * c1 === CircularGaussian(flux=3., σ=0.1, coords=SVector(1., 2.))
-    @test 3 * (c1 + (c2 + c3)) === MultiComponentModel((3c1, 3c2, 3c3))
+    @test (c1 + c2 + c3) * 3 === MultiComponentModel((3c1, 3c2, 3c3))
+
+    @test c1 / 2 === CircularGaussian(flux=0.75, σ=0.1, coords=SVector(1., 2.))
+    @test (c1 + (c2 + c3)) / 3 === MultiComponentModel((c1/3, c2/3, c3/3))
 end
 
 @testitem "beam" begin
