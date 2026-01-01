@@ -14,8 +14,15 @@ StructHelpers = "4093c41a-2008-41fd-82b8-e3f9d02b504f"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 
+[weakdeps]
+ComradeBase = "6d8c423b-a35f-4ef1-850c-862fe21f82c4"
+
+[extensions]
+ComradeBaseExt = "ComradeBase"
+
 [compat]
 AccessorsExtra = "0.1.77"
+ComradeBase = "0.8.7"
 DataPipes = "0.3.17"
 IntervalSets = "0.7"
 LinearAlgebra = "1"
