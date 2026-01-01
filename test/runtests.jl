@@ -98,6 +98,11 @@ end
     @test c ≈ EllipticGaussian(flux=1.5, σ_major=0.25f0, ratio_minor_major=2f0, pa_major=deg2rad(-90+16.6992f0), coords=SVector(1, 2))
     @test !(c ≈ EllipticGaussian(flux=1.5, σ_major=0.5, ratio_minor_major=0.5, pa_major=deg2rad(16.9), coords=SVector(1., 2.)))
 
+    @test (@inferred EllipticGaussian(Point(flux=1.5f0, coords=SVector(1., 2.)))) === EllipticGaussian(flux=1.5f0, σ_major=0., ratio_minor_major=1., pa_major=0., coords=SVector(1., 2.))
+    @test (@inferred EllipticGaussian(Point(flux=1.5f0, coords=SVector(1f0, 2f0)))) === EllipticGaussian(flux=1.5f0, σ_major=0f0, ratio_minor_major=1f0, pa_major=0f0, coords=SVector(1f0, 2f0))
+    @test (@inferred EllipticGaussian(CircularGaussian(flux=1.5f0, σ=0.1, coords=SVector(1., 2.)))) === EllipticGaussian(flux=1.5f0, σ_major=0.1, ratio_minor_major=1., pa_major=0., coords=SVector(1., 2.))
+    @test (@inferred EllipticGaussian(CircularGaussian(flux=1.5f0, σ=0.1f0, coords=SVector(1f0, 2f0)))) === EllipticGaussian(flux=1.5f0, σ_major=0.1f0, ratio_minor_major=1f0, pa_major=0f0, coords=SVector(1f0, 2f0))
+
     @test intensity_peak(c) ≈ 1.5 / (2π*0.5*0.25)
     @test intensity(c)(SVector(1, 2)) ≈ intensity_peak(c)
     @test fwhm_max(c) ≈ 0.5 * √(8 * log(2))
