@@ -197,9 +197,6 @@ Broadcast.broadcasted(::typeof(visibility), f::Function, args...; kwargs...) = f
 
 Unitful.ustrip(x::ModelComponent) = @modify(x -> ustrip.(x), x |> Properties())
 Unitful.ustrip(x::MultiComponentModel) = @modify(ustrip, components(x)[∗])
-# piracy, but...
-Unitful.ustrip(x::AbstractInterval) = @modify(ustrip, x |> Properties())
-Unitful.ustrip(u::Unitful.Units, x::AbstractInterval) = @modify(f -> ustrip(u, f), x |> Properties())
 
 
 Base.isapprox(a::ModelComponent, b::ModelComponent; kwargs...) =

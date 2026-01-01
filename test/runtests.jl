@@ -349,9 +349,6 @@ end
     mu = MultiComponentModel((cu,))
     @test ustrip(m) == m
     @test ustrip(mu) == m
-
-    @test ustrip(1u"m"..2u"m") == 1..2
-    @test ustrip(u"cm", 1u"m"..2u"m") == 100..200
 end
 
 @testitem "set" begin
