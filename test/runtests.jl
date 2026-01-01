@@ -353,11 +353,17 @@ end
     using Unitful
     using UnitfulAstro
     using UnitfulAngles
+    import MonteCarloMeasurements as MCM
+
+    # https://github.com/baggepinnen/MonteCarloMeasurements.jl/pull/179
+    @eval MCM Base.convert(::Type{Particles{T,N}}, f::Particles{S,N}) where {T,N,S} = Particles{T,N}(convert.(T, f.particles))
 
     @test InterferometricModels.σ_to_fwhm(1)::Float64 ≈ 2.3548200450309493
     @test InterferometricModels.σ_to_fwhm(0.1)::Float64 ≈ 0.23548200450309495
     @test InterferometricModels.σ_to_fwhm(0.1f0)::Float32 ≈ 0.23548200450309495
     @test ustrip(InterferometricModels.σ_to_fwhm(0.1f0u"m"))::Float32 ≈ 0.23548200450309495
+    @test InterferometricModels.σ_to_fwhm(MCM.Particles(randn(10^4) .+ 10)) ≈ MCM.Particles(randn(10^4) .+ 10) * 2.3548200450309493
+    @test InterferometricModels.σ_to_fwhm(MCM.Particles(Float32.(randn(10^4) .+ 10))) ≈ MCM.Particles(randn(10^4) .+ 10) * 2.3548200450309493
     InverseFunctions.test_inverse(InterferometricModels.σ_to_fwhm, 0.1)
     InverseFunctions.test_inverse(InterferometricModels.σ_to_fwhm, 0.1u"m")
     InverseFunctions.test_inverse(InterferometricModels.fwhm_to_σ, 0.1)
