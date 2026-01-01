@@ -152,13 +152,30 @@ intensity(c, uv::XYType) = intensity(c)(uv)
 
 const MIN_EXP_ARG = log(1e-30)  # if flux < 10^-30 of component peak, return zero
 
+# difmap uses lookup table for exp(), see mapres.c file in difmap source code
+# here, we define exp_for_gaussintensity() that can be swapped to use either:
+# - basic exp (correct, but slightly differs from difmap)
+# - difmap-like exp with lookup table (when matching difmap results is important)
+exp_for_gaussintensity(x) = exp_for_gaussintensity_basic(x)
+exp_for_gaussintensity_basic(x) = x > MIN_EXP_ARG ? exp(x) : zero(exp(x))
+function exp_for_gaussintensity_difmap(x)
+    @assert x ≤ 0
+    ETSIZ = 1024
+    nsigma = 4.5
+    expconv = ETSIZ/(0.5*nsigma^2)
+    x1 = -x * expconv
+    x1 > ETSIZ && return zero(exp(x))
+    x2 = -floor(x1) / expconv
+    return exp(x2)
+end
+
 function intensity(c::CircularGaussian)
     peak = intensity_peak(c)
     mul = -1 / (2*c.σ^2)
     function(xy::XYType)
         Δxy = xy - c.coords
         expfac = mul * dot(Δxy, Δxy)
-        expfac > MIN_EXP_ARG ? peak * exp(expfac) : zero(peak * exp(expfac))
+        peak * exp_for_gaussintensity(expfac)
     end
 end
 intensity(c::EllipticGaussian) = intensity(EllipticGaussianCovmat(c))
@@ -168,7 +185,7 @@ function intensity(c::EllipticGaussianCovmat)
     (xy::XYType) -> let
         Δxy = xy - c.coords
         expfac = -1/2 * dot(Δxy, invcovmat, Δxy)
-        expfac > MIN_EXP_ARG ? peak * exp(expfac) : zero(peak * exp(expfac))
+        peak * exp_for_gaussintensity(expfac)
     end
 end
 
