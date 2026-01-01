@@ -13,3 +13,22 @@ Tb_to_intensity(Tb::Real, ν) = Tb_to_intensity(Tb*u"K", ν) / u"Jy/(1e-3*arcsec
 
 Accessors.inverse(f::Base.Fix2{typeof(intensity_to_Tb)}) = Base.Fix2(Tb_to_intensity, f.x)
 Accessors.inverse(f::Base.Fix2{typeof(Tb_to_intensity)}) = Base.Fix2(intensity_to_Tb, f.x)
+
+
+const UVType = StaticVector{2}
+const XYType = StaticVector{2}
+
+position_angle(x::StaticVector{2}) = atan(first(x), last(x))
+
+struct UVW{T} <: FieldVector{3, T}
+    u::T
+    v::T
+    w::T
+end
+
+struct UV{T} <: FieldVector{2, T}
+    u::T
+    v::T
+end
+
+UV(uvw::UVW) = UV(uvw.u, uvw.v)
