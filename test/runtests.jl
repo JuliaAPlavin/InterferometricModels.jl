@@ -358,9 +358,6 @@ end
     using UnitfulAngles
     import MonteCarloMeasurements as MCM
 
-    # https://github.com/baggepinnen/MonteCarloMeasurements.jl/pull/179
-    @eval MCM Base.convert(::Type{Particles{T,N}}, f::Particles{S,N}) where {T,N,S} = Particles{T,N}(convert.(T, f.particles))
-
     @test InterferometricModels.σ_to_fwhm(1)::Float64 ≈ 2.3548200450309493
     @test InterferometricModels.σ_to_fwhm(0.1)::Float64 ≈ 0.23548200450309495
     @test InterferometricModels.σ_to_fwhm(0.1f0)::Float32 ≈ 0.23548200450309495
