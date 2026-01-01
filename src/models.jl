@@ -191,6 +191,25 @@ visibility_envelope(::typeof(abs), c::EllipticGaussian, uvdist::Real) = (c.flux 
 visibility_envelope(f::typeof(abs), m::MultiComponentModel{<:Tuple{Any}}, uvdist::Real) = visibility_envelope(f, only(components(m)), uvdist)
 visibility_envelope(f::typeof(angle), m::MultiComponentModel{<:Tuple{Any}}, uvdist::Real) = visibility_envelope(f, only(components(m)), uvdist)
 
+function visibility_envelope(f::Function, model, uvdist::Real; npoints=100, seed=npoints)
+	rng = copy(Random.default_rng())
+	Random.seed!(rng, seed)
+	ends = extrema(rand(rng, 0..2π, npoints)) do θ
+		visibility(f, model, uvdist * SVector(sincos(θ)))
+	end
+    w = ends[2] - ends[1]
+    Interval(ends[1] - 0.1w, ends[2] + 0.1w)  # XXX: arbitrary margin, not guaranteed
+end
+function visibility_envelope(f::typeof(abs), model, uvdist::Real; kwargs...)
+    i = @invoke visibility_envelope(f::Function, model, uvdist; kwargs...)
+    @modify(e -> max(e, zero(e)), leftendpoint(i))
+end
+function visibility_envelope(f::typeof(angle), model, uvdist::Real; kwargs...)
+    i = @invoke visibility_envelope(f::Function, model, uvdist; kwargs...)
+    maxval = maximum(abs, endpoints(i))
+    return -maxval .. maxval
+end
+
 visibility(f::Function, args...; kwargs...) = f(visibility(args...; kwargs...))
 Broadcast.broadcasted(::typeof(visibility), f::Function, args...; kwargs...) = f.(visibility.(args...; kwargs...))
 

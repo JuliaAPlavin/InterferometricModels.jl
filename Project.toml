@@ -8,25 +8,20 @@ AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"
 DataPipes = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StructHelpers = "4093c41a-2008-41fd-82b8-e3f9d02b504f"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 
-[weakdeps]
-IntervalArithmetic = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
-
-[extensions]
-IntervalArithmeticExt = "IntervalArithmetic"
-
 [compat]
 AccessorsExtra = "0.1.77"
 DataPipes = "0.3.17"
-IntervalArithmetic = "0.22"
 IntervalSets = "0.7"
 LinearAlgebra = "1"
+Random = "1"
 StaticArrays = "1.1"
 StructHelpers = "1.2.0"
-Unitful = "1.6 - 1.21"
+Unitful = "1.6"
 UnitfulAstro = "1.0"
 julia = "1.6"
