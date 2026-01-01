@@ -181,17 +181,16 @@ end
     @test position_angle(c2 => c1) ≈ 0.23374318086890142
     @test separation(c1, c2) ≈ 2.1587033144922905
     cs = (c1, c1, c2)
-    m = MultiComponentModel(cs)
-    xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
-    @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
-    @test visibility.(m, xs) ≈ 2 .* visibility.(c1, xs) .+ visibility.(c2, xs)
-    @test flux(m) == 4.5
-    @test deepcopy(m) == m
-    @test @set(components(m)[2].flux = 1.500002f0) ≈ m
-    @test !(@set(components(m)[2].flux = 1.7f0) ≈ m)
-
-    m = MultiComponentModel(collect(cs))
-    @test deepcopy(m) == m
+    @testset for m in (MultiComponentModel(cs), MultiComponentModel(collect(cs)))
+        @test deepcopy(m) == m
+        xs = [[SVector(1., 2.), SVector(0., 0.)]; SVector.(randn(10), randn(10))]
+        @test intensity(m).(xs) ≈ 2 .* intensity(c1).(xs) .+ intensity(c2).(xs)
+        @test visibility.(m, xs) ≈ 2 .* visibility.(c1, xs) .+ visibility.(c2, xs)
+        @test flux(m) == 4.5
+        @test deepcopy(m) == m
+        @test @set(components(m)[2].flux = 1.500002f0) ≈ m
+        @test !(@set(components(m)[2].flux = 1.7f0) ≈ m)
+    end
 end
 
 @testitem "model arithmetic" begin
