@@ -1,5 +1,3 @@
-using AccessorsExtra: ConstrainedLens, FixArgs
-
 set(c::CircularGaussian,
     co::ConstrainedLens{<:Union{typeof(fwhm_max), typeof(fwhm_min), typeof(fwhm_average), typeof(effective_area)}, PropertyLens{:σ}},
     val) = set(c, co.o, val)

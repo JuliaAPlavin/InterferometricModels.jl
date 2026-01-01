@@ -266,6 +266,12 @@ AccessorsExtra.@define_construct_by_set EllipticGaussian (
 
 construct(::Type{CircularGaussian},
     p1::Pair{typeof(flux)},
-    (o2, v2)::Pair{<:Union{typeof(intensity_peak),Base.Fix2{typeof(Tb_peak)}}},
+    (o2, v2)::Pair{<:Union{typeof(intensity_peak),Base.Fix2{typeof(Tb_peak)},FixArgs{typeof(visibility),<:Tuple{typeof(abs),Vararg{Any}}}}},
     p3::Pair{typeof(coords)}
 ) = AccessorsExtra.construct_by_set(CircularGaussian, (p1, modifying(@o _.σ)(o2) => v2, p3))
+
+construct(::Type{CircularGaussian},
+    p1::Pair{<:Union{PropertyLens{:σ},typeof(fwhm_average),typeof(fwhm_max),typeof(fwhm_min),typeof(effective_area)}},
+    (o2, v2)::Pair{<:Union{typeof(intensity_peak),Base.Fix2{typeof(Tb_peak)},FixArgs{typeof(visibility),<:Tuple{typeof(abs),Vararg{Any}}}}},
+    p3::Pair{typeof(coords)}
+) = AccessorsExtra.construct_by_set(CircularGaussian, (p1, modifying(@o _.flux)(o2) => v2, p3))

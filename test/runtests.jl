@@ -86,6 +86,8 @@ end
     test_construct_laws(CircularGaussian, flux=>2.5u"m", effective_area=>0.2u"°^2", coords=>SVector(1, 2); cmp=(≈))
     test_construct_laws(CircularGaussian, flux=>2.5u"m", intensity_peak=>0.2u"m/°^2", coords=>SVector(1, 2); cmp=(≈))
     test_construct_laws(CircularGaussian, flux=>2.5u"W/m^2/Hz", (@o Tb_peak(_, 5u"GHz"))=>0.2u"K", coords=>SVector(1, 2); cmp=(≈))
+    test_construct_laws(CircularGaussian, flux=>2.5, (@o visibility(abs, _, SVector(0, 1e5)))=>0.2, coords=>SVector(1, 2); cmp=(≈))
+    test_construct_laws(CircularGaussian, fwhm_average=>2.5e-5, (@o visibility(abs, _, SVector(0, 1e5)))=>0.2, coords=>SVector(1, 2); cmp=(≈))
 end
 
 @testitem "elliptical" begin

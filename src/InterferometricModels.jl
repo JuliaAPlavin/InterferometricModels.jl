@@ -10,6 +10,7 @@ import AccessorsExtra: set, construct
 using AccessorsExtra.InverseFunctions: square
 using StructHelpers
 import Random
+using AccessorsExtra: ConstrainedLens, FixArgs
 
 export
     ModelComponent, Point, CircularGaussian, EllipticGaussian, EllipticGaussianCovmat,
