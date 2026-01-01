@@ -1,5 +1,5 @@
-σ_to_fwhm(σ) = √(8 * log(2)) * σ
-fwhm_to_σ(fwhm) = fwhm / √(8 * log(2))
+σ_to_fwhm(σ) = oftype(float(σ), √(8 * log(2)) * σ)
+fwhm_to_σ(fwhm) = oftype(float(fwhm), fwhm / √(8 * log(2)))
 Accessors.inverse(::typeof(σ_to_fwhm)) = fwhm_to_σ
 Accessors.inverse(::typeof(fwhm_to_σ)) = σ_to_fwhm
 
