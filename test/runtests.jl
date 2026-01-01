@@ -235,7 +235,7 @@ end
     test_construct_laws(Beam{EllipticGaussian}, fwhm_max => 0.5u"mas", fwhm_min => 0.3u"mas", position_angle => 0.123, type=Beam{<:EllipticGaussian})
 end
 
-@testitem "convolve beam" begin
+@testitem "convolve beam - keep intensity" begin
     using StaticArrays
 
     c = Point(flux=1.5, coords=SVector(1., 2.))
@@ -272,6 +272,62 @@ end
     @test cc isa EllipticGaussianCovmat
     @test coords(cc) ≈ SVector(1, 2)
     @test 1.4 < intensity_peak(cc) < 1.5
+
+    cm = convolve(MultiComponentModel((c,)), beam(CircularGaussian, σ=0.5))
+    @test only(components(cm)) == convolve(c, beam(CircularGaussian, σ=0.5))
+end
+
+@testitem "convolve beam - keep flux" begin
+    using StaticArrays
+    beam(args...; kwargs...) = InterferometricModels.beam(args...; kwargs..., keep_flux=true)
+
+    c = Point(flux=1.5, coords=SVector(1., 2.))
+    b = beam(CircularGaussian, σ=0.5)
+    cc = convolve(c, b)
+    @test cc isa CircularGaussian
+    @test coords(cc) ≈ SVector(1, 2)
+    @test intensity_peak(cc) == 1.5 / effective_area(b)
+
+    b = beam(EllipticGaussian, σ_major=1., ratio_minor_major=0.5, pa_major=0.)
+    cc = convolve(c, b)
+    @test cc isa EllipticGaussian
+    @test coords(cc) ≈ SVector(1, 2)
+    @test intensity_peak(cc) == 1.5 / effective_area(b)
+
+    c = CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.))
+    @test convolve(c, beam(CircularGaussian, σ=1e-10)) ≈ c
+    @test convolve(convolve(c, beam(CircularGaussian, σ=0.3)), beam(CircularGaussian, σ=0.4)) ≈ convolve(c, beam(CircularGaussian, σ=0.5))
+
+    @assert !InterferometricModels.is_beam(c)
+    @assert InterferometricModels.is_beam(beam(CircularGaussian, σ=0.5))
+
+    b = beam(CircularGaussian, σ=0.5)
+    cc = convolve(c, b)
+    @test cc isa CircularGaussian
+    @test coords(cc) ≈ SVector(1, 2)
+    @test flux(cc) == flux(c)
+    @test 1.4 < intensity_peak(cc) * effective_area(b) < 1.5
+
+    b = beam(EllipticGaussian, σ_major=1., ratio_minor_major=0.5, pa_major=0.)
+    cc = convolve(c, b)
+    @test cc isa EllipticGaussianCovmat
+    @test coords(cc) ≈ SVector(1, 2)
+    @test flux(cc) == flux(c)
+    @test 1.4 < intensity_peak(cc) * effective_area(b) < 1.5
+
+
+    c = EllipticGaussian(flux=1.5, σ_major=0.1, ratio_minor_major=0.7, pa_major=0.123, coords=SVector(1., 2.))
+    b = beam(CircularGaussian, σ=0.5)
+    cc = convolve(c, b)
+    @test cc isa EllipticGaussianCovmat
+    @test coords(cc) ≈ SVector(1, 2)
+    @test 1.4 < intensity_peak(cc) * effective_area(b) < 1.5
+
+    b = beam(EllipticGaussian, σ_major=1., ratio_minor_major=0.5, pa_major=0.)
+    cc = convolve(c, b)
+    @test cc isa EllipticGaussianCovmat
+    @test coords(cc) ≈ SVector(1, 2)
+    @test 1.4 < intensity_peak(cc) * effective_area(b) < 1.5
 
     cm = convolve(MultiComponentModel((c,)), beam(CircularGaussian, σ=0.5))
     @test only(components(cm)) == convolve(c, beam(CircularGaussian, σ=0.5))
