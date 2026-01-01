@@ -49,6 +49,14 @@ end
     @test c ≈ CircularGaussian(flux=1.5f0 * 1.00001f0, σ=0.1f0 * 1.00001f0, coords=SVector(1f0, 2f0))
     @test !(c ≈ CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1.3, 2.)))
 
+    @test CircularGaussian(Point(flux=1.5f0, coords=SVector(1., 2.))) === CircularGaussian(flux=1.5f0, σ=0., coords=SVector(1., 2.))
+    @test CircularGaussian(Point(flux=1.5f0, coords=SVector(1f0, 2f0))) === CircularGaussian(flux=1.5f0, σ=0f0, coords=SVector(1f0, 2f0))
+    for c in Any[Point(flux=1.5, coords=SVector(1., 2.)),
+                 Point(flux=1.5f0, coords=SVector(1., 2.)),
+                 Point(flux=1.5f0, coords=SVector(1f0, 2f0))]
+        @test (@inferred Point(CircularGaussian(c))) === c
+    end
+
     @test intensity_peak(c) ≈ 1.5 / (2π*0.1^2)
     @test intensity(c)(SVector(1, 2)) ≈ intensity_peak(c)
     @test fwhm_max(c) ≈ fwhm_min(c) ≈ fwhm_average(c)
@@ -102,6 +110,15 @@ end
     @test (@inferred EllipticGaussian(Point(flux=1.5f0, coords=SVector(1f0, 2f0)))) === EllipticGaussian(flux=1.5f0, σ_major=0f0, ratio_minor_major=1f0, pa_major=0f0, coords=SVector(1f0, 2f0))
     @test (@inferred EllipticGaussian(CircularGaussian(flux=1.5f0, σ=0.1, coords=SVector(1., 2.)))) === EllipticGaussian(flux=1.5f0, σ_major=0.1, ratio_minor_major=1., pa_major=0., coords=SVector(1., 2.))
     @test (@inferred EllipticGaussian(CircularGaussian(flux=1.5f0, σ=0.1f0, coords=SVector(1f0, 2f0)))) === EllipticGaussian(flux=1.5f0, σ_major=0.1f0, ratio_minor_major=1f0, pa_major=0f0, coords=SVector(1f0, 2f0))
+    for c in Any[Point(flux=1.5, coords=SVector(1., 2.)),
+                 Point(flux=1.5f0, coords=SVector(1., 2.)),
+                 Point(flux=1.5f0, coords=SVector(1f0, 2f0)),]
+        @test (@inferred Point(EllipticGaussian(c))) === c
+    end
+    for c in Any[CircularGaussian(flux=1.5, σ=0.1, coords=SVector(1., 2.)),
+                 CircularGaussian(flux=1.5f0, σ=0.1f0, coords=SVector(1f0, 2f0)),]
+        @test (@inferred CircularGaussian(EllipticGaussian(c))) === c
+    end
 
     @test intensity_peak(c) ≈ 1.5 / (2π*0.5*0.25)
     @test intensity(c)(SVector(1, 2)) ≈ intensity_peak(c)
