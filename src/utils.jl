@@ -55,3 +55,18 @@ function exp_for_gaussintensity_difmap(x)
     x2 = -floor(x1) / expconv
     return exp(x2)
 end
+
+"""
+    with_difmap_compat(function)
+
+Temporarily switch to `exp` calculation compatible with `difmap` within the execution of `function`.
+Useful whenever exact matching of `difmap` results is required, eg when calculating CLEAN models and comparing them to `difmap` FITS outputs.
+"""
+function with_difmap_compat(f)
+	@eval InterferometricModels.exp_for_gaussintensity(x) = InterferometricModels.exp_for_gaussintensity_difmap(x)
+    return try
+        @invokelatest f()
+    finally
+        @eval InterferometricModels.exp_for_gaussintensity(x) = InterferometricModels.exp_for_gaussintensity_basic(x)
+    end
+end
