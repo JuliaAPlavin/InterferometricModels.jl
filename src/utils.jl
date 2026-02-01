@@ -36,6 +36,8 @@ UV(uvw::UVW) = UV(uvw.u, uvw.v)
 StaticArrays.similar_type(::Type{<:UV}, ::Type{T}, s::Size{(2,)}) where {T} = UV{T}
 StaticArrays.similar_type(::Type{<:UVW}, ::Type{T}, s::Size{(3,)}) where {T} = UVW{T}
 
+AccessorsExtra.set(obj::UV, ::Type{UV}, val::UV) = val
+
 
 const MIN_EXP_ARG = log(1e-30)  # if flux < 10^-30 of component peak, return zero
 
