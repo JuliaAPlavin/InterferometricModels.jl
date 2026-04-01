@@ -244,6 +244,8 @@ end
 visibility(f::Function, args...; kwargs...) = f(visibility(args...; kwargs...))
 Broadcast.broadcasted(::typeof(visibility), f::Function, args...; kwargs...) = f.(visibility.(args...; kwargs...))
 
+visibilities(model, uvs::AbstractVector{<:UVType}) = visibility.(Ref(model), uvs)
+
 
 Unitful.ustrip(x::ModelComponent) = @modify(x -> ustrip.(x), x |> Properties())
 Unitful.ustrip(x::MultiComponentModel) = @modify(ustrip, components(x)[∗])

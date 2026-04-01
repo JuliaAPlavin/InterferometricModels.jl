@@ -17,7 +17,7 @@ export
     MultiComponentModel, components,
     flux, coords, Tb_peak, fwhm_max, fwhm_average, fwhm_min, effective_area, position_angle, separation,
     intensity_peak, intensity,
-    visibility, visibility_envelope,
+    visibility, visibilities, visibility_envelope,
     convolve, beam, Beam,
     ustrip,
     UV, UVW

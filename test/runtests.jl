@@ -39,6 +39,8 @@ end
     @test visibility.(c, [SVector(-1.23, 4.56)]) |> only ≈ flux(c) * cis(angle(0.01415 - 0.01170im))  rtol=1e-3
     @test visibility.(abs, c, [SVector(-1.23, 4.56)]) |> only == flux(c)
 
+    @test visibilities(c, [SVector(0, 0), SVector(-1.23, 4.56)]) == visibility.(c, [SVector(0, 0), SVector(-1.23, 4.56)])
+
     @test mod2pi(visibility(angle, c, SVector(-1.23, 4.56))) ≈ mod2pi(angle(0.01415 - 0.01170im))  rtol=1e-4
 
     test_construct_laws(Point, flux=>2.5, coords=>SVector(1, 2))
