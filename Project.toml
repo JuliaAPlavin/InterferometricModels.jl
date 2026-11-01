@@ -1,7 +1,7 @@
 name = "InterferometricModels"
 uuid = "b395d269-c2ec-4df6-b679-36919ad600ca"
 authors = ["Alexander Plavin <alexander@plav.in>"]
-version = "0.1.35"
+version = "0.1.36"
 
 [deps]
 AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"
@@ -16,14 +16,17 @@ UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 
 [weakdeps]
 ComradeBase = "6d8c423b-a35f-4ef1-850c-862fe21f82c4"
+FINUFFT = "d8beea63-0952-562e-9c6a-8e8ef7364055"
 
 [extensions]
 ComradeBaseExt = "ComradeBase"
+FINUFFTExt = "FINUFFT"
 
 [compat]
 AccessorsExtra = "0.1.77"
 ComradeBase = "0.8.7, 0.9"
 DataPipes = "0.3.17"
+FINUFFT = "3"
 IntervalSets = "0.7"
 LinearAlgebra = "1"
 Random = "1"

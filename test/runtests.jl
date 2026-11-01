@@ -573,3 +573,19 @@ end
     CHL.@check()
     Aqua.test_all(InterferometricModels, ambiguities=(;broken=true))
 end
+
+@testitem "visibilities of point components via FINUFFT" begin
+    import FINUFFT
+    using StaticArrays, Unitful, UnitfulAstro, Random
+
+    rng = Xoshiro(1)
+    uvs = [SVector(randn(rng), randn(rng)) .* 1e9 for _ in 1:500]
+    unitful = MultiComponentModel([Point(randn(rng) * u"Jy", SVector(randn(rng), randn(rng)) .* 5u"mas") for _ in 1:300])
+    plain = MultiComponentModel([Point(Float32(randn(rng)), SVector{2,Float32}(randn(rng, 2) .* 1f-8)) for _ in 1:300])
+    for m in (unitful, plain)
+        V = visibilities(m, uvs)
+        @test V ≈ visibility.(m, uvs) rtol=1e-8
+        @test unit(eltype(V)) == unit(eltype(visibility.(m, uvs)))
+    end
+    @test isempty(visibilities(unitful, SVector{2,Float64}[]))
+end
